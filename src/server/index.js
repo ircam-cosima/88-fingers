@@ -11,6 +11,48 @@ switch(process.env.ENV) {
     break;
 }
 
+
+// define labels /
+const firstNoteNumber = 21;
+const numberOfNotes = 88;
+const noteNames = {
+  0: 'do',
+  1: 'do#',
+  2: 'ré',
+  3: 'ré#',
+  4: 'mi',
+  5: 'fa',
+  6: 'fa#',
+  7: 'sol',
+  8: 'sol#',
+  9: 'la',
+  10: 'la#',
+  11: 'si'
+};
+
+function getOctava(midiNote) {
+  return Math.floor(midiNote / 12) - 1;
+}
+
+function getLabel(midiNote) {
+  return `${noteNames[midiNote % 12]} - ${getOctava(midiNote)}`;
+}
+
+const labels = [];
+const midiNotes = [];
+
+for (let i = 0; i < numberOfNotes; i++) {
+  const note = i + firstNoteNumber;
+  const label = getLabel(note);
+  labels.push(label);
+  midiNotes.push(note);
+}
+
+config.setup.labels = labels;
+config.setup.midiNotes = midiNotes;
+
+console.log(config.setup);
+
 // configure express environment ('production' enables cache systems)
 process.env.NODE_ENV = config.env;
 // initialize application with configuration options
