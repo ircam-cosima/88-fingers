@@ -52,8 +52,6 @@ for (let i = 0; i < numberOfNotes; i++) {
 config.setup.labels = labels;
 config.setup.midiNotes = midiNotes;
 
-console.log(config.setup);
-
 // configure express environment ('production' enables cache systems)
 process.env.NODE_ENV = config.env;
 // initialize application with configuration options

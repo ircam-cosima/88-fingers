@@ -6,7 +6,6 @@ export default class PlayerExperience extends Experience {
     super(clientType);
 
     this.placer = this.require('placer');
-    this.sharedConfig = this.require('shared-config');
   }
 
   // if anything needs to append when the experience starts
@@ -18,7 +17,7 @@ export default class PlayerExperience extends Experience {
     super.enter(client);
 
     this.receive(client, 'note-on', (intensity) => {
-      
+
     });
 
     this.receive(client, 'note-off', () => {
