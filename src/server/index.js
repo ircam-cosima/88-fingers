@@ -1,5 +1,6 @@
 import 'source-map-support/register'; // enable sourcemaps in node
 import * as soundworks from 'soundworks/server';
+import * as midi from 'midi';
 import PlayerExperience from './PlayerExperience';
 import defaultConfig from './config/default';
 
@@ -29,13 +30,27 @@ soundworks.server.setClientConfigDefinition((clientType, config, httpRequest) =>
   };
 });
 
-// create the experience
-// activities must be mapped to client types:
-// - the `'player'` clients (who take part in the scenario by connecting to the
-//   server through the root url) need to communicate with the `checkin` (see
-// `src/server/playerExperience.js`) and the server side `playerExperience`.
-// - we could also map activities to additional client types (thus defining a
-//   route (url) of the following form: `/${clientType}`)
+// open midi interface
+const midiOutput = new midi.output();
+const portCount = midiOutput.getPortCount();
+let portName = '';
+let portIndex = -1;
+
+for(let i = 0; i < portCount; i++) {
+  const str = midiOutput.getPortName(i);
+  console.log('MIDI port', i.toString() + ':', str);
+
+  if(str.indexOf('MIDI') >= 0) {
+    portName = str;
+    portIndex = i;
+    break;
+  }
+}
+
+if(portIndex >= 0) {
+  console.log('Opening MIDI port', portIndex.toString() + ':', portName);
+}
+
 const experience = new PlayerExperience('player');
 
 // start application
