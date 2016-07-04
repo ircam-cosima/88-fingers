@@ -12,8 +12,7 @@ switch(process.env.ENV) {
     break;
 }
 
-
-// define labels /
+// define labels
 const firstNoteNumber = 21;
 const numberOfNotes = 88;
 const noteNames = {
@@ -51,13 +50,10 @@ for (let i = 0; i < numberOfNotes; i++) {
 
 config.setup.labels = labels;
 config.setup.midiNotes = midiNotes;
-
-// configure express environment ('production' enables cache systems)
 process.env.NODE_ENV = config.env;
-// initialize application with configuration options
+
 soundworks.server.init(config);
 
-// define the configuration object to be passed to the `.ejs` template
 soundworks.server.setClientConfigDefinition((clientType, config, httpRequest) => {
   return {
     clientType: clientType,
@@ -71,6 +67,7 @@ soundworks.server.setClientConfigDefinition((clientType, config, httpRequest) =>
 });
 
 // open midi interface
+const midiInput = new midi.input();
 const midiOutput = new midi.output();
 const portCount = midiOutput.getPortCount();
 let portName = '';
@@ -78,7 +75,7 @@ let portIndex = -1;
 
 for(let i = 0; i < portCount; i++) {
   const str = midiOutput.getPortName(i);
-  console.log('MIDI port', i.toString() + ':', str);
+  console.log('MIDI output port', i.toString() + ':', str);
 
   if(str.indexOf('MIDI') >= 0) {
     portName = str;
@@ -88,10 +85,11 @@ for(let i = 0; i < portCount; i++) {
 }
 
 if(portIndex >= 0) {
-  console.log('Opening MIDI port', portIndex.toString() + ':', portName);
+  console.log('Opening MIDI output port', portIndex.toString() + ':', portName);
+  midiOutput.openPort(portIndex);
 }
 
-const experience = new PlayerExperience('player');
+const experience = new PlayerExperience(midiNotes, midiOutput);
 
 // start application
 soundworks.server.start();
