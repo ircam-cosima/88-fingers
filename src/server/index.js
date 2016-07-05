@@ -1,6 +1,6 @@
 import 'source-map-support/register'; // enable sourcemaps in node
 import * as soundworks from 'soundworks/server';
-import * as midi from 'midi';
+import * as jazz from 'jazz-midi';
 import PlayerExperience from './PlayerExperience';
 import defaultConfig from './config/default';
 
@@ -66,30 +66,48 @@ soundworks.server.setClientConfigDefinition((clientType, config, httpRequest) =>
   };
 });
 
-// open midi interface
-const midiInput = new midi.input();
-const midiOutput = new midi.output();
-const portCount = midiOutput.getPortCount();
-let portName = '';
-let portIndex = -1;
+// cofigure MIDI interface
+const midi = new jazz.MIDI();
+const midiOutList = midi.MidiOutList();
+let outName = '';
+let outIndex = -1;
+let iacName = '';
+let iacIndex = -1;
 
-for(let i = 0; i < portCount; i++) {
-  const str = midiOutput.getPortName(i);
-  console.log('MIDI output port', i.toString() + ':', str);
+if(midiOutList.length > 0) {
+  console.log('Available MIDI output ports');
 
-  if(str.indexOf('MIDI') >= 0) {
-    portName = str;
-    portIndex = i;
-    break;
+  for(let i = 0; i < midiOutList.length; i++) {
+    const str = midiOutList[i];
+    console.log('  ' + i + ': ' + str);
+
+    if(str.indexOf('Port1') >= 0) {
+      outName = str;
+      outIndex = i;
+      break;
+    }
+
+    if(str.indexOf('IAC') >= 0 || str.indexOf('Bus') >= 0) {
+      iacName = str;
+      iacIndex = i;
+      break;
+    }
   }
+
+  if(outIndex >= 0) {
+    console.log('Opening MIDI output port ' + outIndex.toString() + ' (' + outName + ')');
+    midi.MidiOutOpen(outIndex);
+  } else if (iacIndex) {
+    console.log('Opening MIDI output port ' + iacIndex.toString() + ' (' + iacName + ')');
+    midi.MidiOutOpen(iacIndex);
+  } else {
+    console.log('Failed to open MIDI output');
+  }
+} else {
+  console.log('No MIDI output ports available');
 }
 
-if(portIndex >= 0) {
-  console.log('Opening MIDI output port', portIndex.toString() + ':', portName);
-  midiOutput.openPort(portIndex);
-}
-
-const experience = new PlayerExperience(midiNotes, midiOutput);
+const experience = new PlayerExperience(midiNotes, midi);
 
 // start application
 soundworks.server.start();
