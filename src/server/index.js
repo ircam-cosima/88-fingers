@@ -53,7 +53,6 @@ config.setup.midiNotes = midiNotes;
 process.env.NODE_ENV = config.env;
 
 soundworks.server.init(config);
-
 soundworks.server.setClientConfigDefinition((clientType, config, httpRequest) => {
   return {
     clientType: clientType,
@@ -66,7 +65,11 @@ soundworks.server.setClientConfigDefinition((clientType, config, httpRequest) =>
   };
 });
 
-// cofigure MIDI interface
+/********************************************************
+ *
+ *  configure MIDI interface
+ *
+ */
 const midi = new jazz.MIDI();
 const midiOutList = midi.MidiOutList();
 let outName = '';
@@ -107,6 +110,17 @@ if(midiOutList.length > 0) {
   console.log('No MIDI output ports available');
 }
 
+/********************************************************
+ *
+ *  setup shared parameters, controller, and player
+ *
+ */
+const sharedParams = soundworks.server.require('shared-params');
+sharedParams.addText('numPlayers', 'num players', 0, ['controller']);
+sharedParams.addEnum('state', 'state', ['wait', 'running', 'end'], 'wait');
+sharedParams.addTrigger('panic', 'all notes off');
+
+const controller = new soundworks.BasicSharedController('controller');
 const experience = new PlayerExperience(midiNotes, midi);
 
 // start application

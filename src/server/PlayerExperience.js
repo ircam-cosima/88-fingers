@@ -35,6 +35,8 @@ export default class PlayerExperience extends Experience {
       this.noteOff(pitch);
       this.noteIsOn[index] = false;
     });
+
+    this.params.update('numPlayers', this.clients.length);
   }
 
   exit(client) {
@@ -44,6 +46,7 @@ export default class PlayerExperience extends Experience {
     const pitch = this.midiNotes[index] + 39;
 
     this.noteOff(pitch);
+    this.params.update('numPlayers', this.clients.length);
   }
 
   noteOn(pitch, velocity) {

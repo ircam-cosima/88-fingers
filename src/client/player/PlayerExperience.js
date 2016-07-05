@@ -9,7 +9,13 @@ const viewTemplate = `
   <div class="foreground">
     <div class="section-top flex-middle"></div>
     <div class="section-center flex-center">
-      <p class="big"><%= title %></p>
+    <% if (state === 'wait') { %>
+      <p>Attend!</p>
+    <% } else if (state === 'running') { %>
+      <p>Vas y!</p>
+    <% } else { %>
+      <p>Merci!</p>
+    <% } %>
     </div>
     <div class="section-bottom flex-middle"></div>
   </div>
@@ -33,10 +39,15 @@ export default class PlayerExperience extends soundworks.Experience {
   init() {
     // initialize the view
     this.viewTemplate = viewTemplate;
-    this.viewContent = { title: `Let's go!` };
+    this.viewContent = { state: 'wait' };
     this.viewCtor = soundworks.CanvasView;
     this.viewOptions = { preservePixelRatio: true };
     this.view = this.createView();
+  }
+
+  set state(state) {
+    this.viewContent.state = state;
+    this.view.render('.section-center');
   }
 
   start() {
@@ -48,7 +59,7 @@ export default class PlayerExperience extends soundworks.Experience {
     this.show();
 
     const params = this.params;
-    params.addParamListener('state', (state) => this.setState(state));
+    params.addParamListener('state', (state) => this.state = state);
 
     const surface = new soundworks.TouchSurface(this.view.$el);
     surface.addListener('touchstart', (id, normX, normY) => {
