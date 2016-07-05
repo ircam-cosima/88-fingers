@@ -10,7 +10,7 @@ export default class PlayerExperience extends Experience {
     this.midi = midi;
 
     this.params = this.require('shared-params');
-    this.checkin = this.require('checkin');
+    this.placer = this.require('placer');
   }
 
   // if anything needs to append when the experience starts
@@ -23,7 +23,7 @@ export default class PlayerExperience extends Experience {
 
     this.receive(client, 'note-on', (intensity, deltaNoteOnTime) => {
       const index = client.index;
-      const pitch = this.midiNotes[index] + 39;
+      const pitch = this.midiNotes[index];
 
       const velocity = Math.floor(128 * intensity);
       this.noteOn(pitch, velocity);
@@ -31,7 +31,7 @@ export default class PlayerExperience extends Experience {
 
     this.receive(client, 'note-off', (duration) => {
       const index = client.index;
-      const pitch = this.midiNotes[index] + 39;
+      const pitch = this.midiNotes[index];
       this.noteOff(pitch);
       this.noteIsOn[index] = false;
     });
@@ -43,7 +43,7 @@ export default class PlayerExperience extends Experience {
     super.exit(client);
 
     const index = client.index;
-    const pitch = this.midiNotes[index] + 39;
+    const pitch = this.midiNotes[index];
 
     this.noteOff(pitch);
     this.params.update('numPlayers', this.clients.length);

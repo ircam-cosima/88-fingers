@@ -76,8 +76,6 @@ const midi = new jazz.MIDI();
 const midiOutList = midi.MidiOutList();
 let outName = '';
 let outIndex = -1;
-let iacName = '';
-let iacIndex = -1;
 
 if(midiOutList.length > 0) {
   console.log('Available MIDI output ports');
@@ -91,20 +89,14 @@ if(midiOutList.length > 0) {
       outIndex = i;
       break;
     }
-
-    if(str.indexOf('IAC') >= 0 || str.indexOf('Bus') >= 0) {
-      iacName = str;
-      iacIndex = i;
-      break;
-    }
   }
 
   if(outIndex >= 0) {
-    console.log('Opening MIDI output port ' + outIndex.toString() + ' (' + outName + ')');
+    console.log(`Opening MIDI output port ${outIndex} (${outName})`);
     midi.MidiOutOpen(outIndex);
-  } else if (iacIndex) {
-    console.log('Opening MIDI output port ' + iacIndex.toString() + ' (' + iacName + ')');
-    midi.MidiOutOpen(iacIndex);
+  } else if (midiOutList.length > 0) {
+    console.log(`Opening MIDI output port 0 (${midiOutList[0]})`);
+    midi.MidiOutOpen(0);
   } else {
     console.log('Failed to open MIDI output');
   }

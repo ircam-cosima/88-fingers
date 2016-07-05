@@ -1,6 +1,5 @@
 import * as soundworks from 'soundworks/client';
 import PlacerView from './PlacerView';
-import PlayerRenderer from './PlayerRenderer';
 import userTiming from './user-timing';
 
 const audioContext = soundworks.audioContext;
@@ -37,6 +36,9 @@ export default class PlayerExperience extends soundworks.Experience {
     this.noteIsOn = false;
     this.lastNoteOnTime = -999999;
     this.fingersDown = new Set();
+
+    this._handleTouchStart = this._handleTouchStart.bind(this);
+    this._handleTouchEnd = this._handleTouchEnd.bind(this);
   }
 
   init() {
@@ -51,6 +53,34 @@ export default class PlayerExperience extends soundworks.Experience {
   set state(state) {
     this.viewContent.state = state;
     this.view.render('.section-center');
+
+    if(state === 'running') {
+      this.surface.addListener('touchstart', this._handleTouchStart);
+      this.surface.addListener('touchend', this._handleTouchEnd);
+    } else {
+      this.surface.removeListener('touchstart', this._handleTouchStart);
+      this.surface.removeListener('touchend', this._handleTouchEnd);
+    }
+  }
+
+  _handleTouchStart(id, normX, normY) {
+    const now = performance.now();
+    const intensity = Math.min(0.999, 1 - normY);
+    this.send('note-on', 1 - normY, now - this.lastNoteOnTime);
+
+    this.fingersDown.add(id);
+    this.noteIsOn = true;
+    this.lastNoteOnTime = now;
+  }
+
+  _handleTouchEnd(id, normX, normY) {
+    this.fingersDown.delete(id);
+
+    if(this.noteIsOn && this.fingersDown.size === 0) {
+      const now = performance.now();
+      this.send('note-off', now - this.lastNoteOnTime);
+      this.noteIsOn = false;
+    }
   }
 
   start() {
@@ -61,41 +91,7 @@ export default class PlayerExperience extends soundworks.Experience {
 
     this.show();
 
-    const params = this.params;
-    params.addParamListener('state', (state) => this.state = state);
-
-    const surface = new soundworks.TouchSurface(this.view.$el);
-    surface.addListener('touchstart', (id, normX, normY) => {
-      const now = performance.now();
-      const intensity = Math.min(0.999, 1 - normY);
-      this.send('note-on', 1 - normY, now - this.lastNoteOnTime);
-
-      this.fingersDown.add(id);
-      this.noteIsOn = true;
-      this.lastNoteOnTime = now;
-    });
-
-    surface.addListener('touchend', (id, normX, normY) => {
-      this.fingersDown.delete(id);
-
-      if(this.noteIsOn && this.fingersDown.size === 0) {
-        const now = performance.now();
-        this.send('note-off', now - this.lastNoteOnTime);
-        this.noteIsOn = false;
-      }
-    });
-
-    // this.renderer = new PlayerRenderer(100, 100);
-    // this.view.addRenderer(this.renderer);
-    //
-    // // this function is called before each update (`Renderer.render`) of the canvas
-    // this.view.setPreRender(function(ctx, dt) {
-    //   ctx.save();
-    //   ctx.globalAlpha = 0.05;
-    //   ctx.fillStyle = '#000000';
-    //   ctx.rect(0, 0, ctx.canvas.width, ctx.canvas.height);
-    //   ctx.fill();
-    //   ctx.restore();
-    // });
+    this.surface = new soundworks.TouchSurface(this.view.$el);
+    this.params.addParamListener('state', (state) => this.state = state);
   }
 }
