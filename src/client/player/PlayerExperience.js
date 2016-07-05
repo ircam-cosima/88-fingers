@@ -1,6 +1,7 @@
 import * as soundworks from 'soundworks/client';
 import PlacerView from './PlacerView';
 import PlayerRenderer from './PlayerRenderer';
+import userTiming from './user-timing';
 
 const audioContext = soundworks.audioContext;
 
@@ -18,13 +19,18 @@ const viewTemplate = `
 // this experience plays a sound when it starts, and plays another sound when
 // other clients join the experience
 export default class PlayerExperience extends soundworks.Experience {
-  constructor(assetsDomain, audioFiles) {
+  constructor() {
     super();
 
     this.platform = this.require('platform', { features: ['wake-lock'] });
     this.placer = this.require('placer', {
       view: new PlacerView(),
     });
+    this.params = this.require('shared-params');
+
+    this.noteIsOn = false;
+    this.lastNoteOnTime = -999999;
+    this.fingersDown = new Set();
   }
 
   init() {
@@ -44,34 +50,41 @@ export default class PlayerExperience extends soundworks.Experience {
 
     this.show();
 
-    // play the first loaded buffer immediately
-    const src = audioContext.createBufferSource();
-    src.buffer = this.loader.buffers[0];
-    src.connect(audioContext.destination);
-    src.start(audioContext.currentTime);
+    const params = this.params;
+    params.addParamListener('state', (state) => this.setState(state));
 
-    // play the second loaded buffer when the message `play` is received from
-    // the server, the message is send when another player joins the experience.
-    this.receive('play', () => {
-      const delay = Math.random();
-      const src = audioContext.createBufferSource();
-      src.buffer = this.loader.buffers[1];
-      src.connect(audioContext.destination);
-      src.start(audioContext.currentTime + delay);
+    const surface = new soundworks.TouchSurface(this.view.$el);
+    surface.addListener('touchstart', (id, normX, normY) => {
+      const now = performance.now();
+      const intensity = Math.min(0.999, 1 - normY);
+      this.send('note-on', 1 - normY, now - this.lastNoteOnTime);
+
+      this.fingersDown.add(id);
+      this.noteIsOn = true;
+      this.lastNoteOnTime = now;
     });
 
-    // initialize rendering
-    this.renderer = new PlayerRenderer(100, 100);
-    this.view.addRenderer(this.renderer);
+    surface.addListener('touchend', (id, normX, normY) => {
+      this.fingersDown.delete(id);
 
-    // this function is called before each update (`Renderer.render`) of the canvas
-    this.view.setPreRender(function(ctx, dt) {
-      ctx.save();
-      ctx.globalAlpha = 0.05;
-      ctx.fillStyle = '#000000';
-      ctx.rect(0, 0, ctx.canvas.width, ctx.canvas.height);
-      ctx.fill();
-      ctx.restore();
+      if(this.noteIsOn && this.fingersDown.size === 0) {
+        const now = performance.now();
+        this.send('note-off', now - this.lastNoteOnTime);
+        this.noteIsOn = false;
+      }
     });
+
+    // this.renderer = new PlayerRenderer(100, 100);
+    // this.view.addRenderer(this.renderer);
+    //
+    // // this function is called before each update (`Renderer.render`) of the canvas
+    // this.view.setPreRender(function(ctx, dt) {
+    //   ctx.save();
+    //   ctx.globalAlpha = 0.05;
+    //   ctx.fillStyle = '#000000';
+    //   ctx.rect(0, 0, ctx.canvas.width, ctx.canvas.height);
+    //   ctx.fill();
+    //   ctx.restore();
+    // });
   }
 }
