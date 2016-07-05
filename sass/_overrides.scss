@@ -1,1 +1,74 @@
-// Entry point for application specific styles
+// '#0099FF', 'red', 'orange'
+
+#keyboard-nav {
+  background-color: #242424;
+}
+
+#keyboard-container {
+  position: relative;
+  overflow: hidden;
+}
+
+#keyboard-layer {
+  position: relative;
+  left: 0;
+}
+
+#reject {
+  position: absolute;
+  top: 0;
+  left: 0;
+  z-index: 10;
+  background-color: rgba(0, 0, 0, 0.7);
+}
+
+#cursor {
+  $cursorColor: orange;
+
+  height: 100%;
+  position: absolute;
+  background-color: $cursorColor;
+  border-radius: 3px;
+
+  &::before, &::after {
+    content: "";
+    display: block;
+    position: absolute;
+    height: 70%;
+    top: 15%;
+    width: 2px;
+    background-color: darken($cursorColor, 6%);
+  }
+
+  &::before { left: 5px; }
+  &::after { right: 5px; }
+}
+
+.key {
+  box-model: border-box;
+  position: absolute;
+
+  &.w {
+    outline: 1px solid black;
+    background-color: white;
+    border-bottom-left-radius: 3px;
+    border-bottom-right-radius: 3px;
+  }
+
+  &.b {
+    border-left: 1px solid black;
+    border-right: 1px solid black;
+    border-bottom: 1px solid black;
+    background-color: black;
+    border-bottom-left-radius: 2px;
+    border-bottom-right-radius: 2px;
+  }
+
+  &.selected {
+    background-color: darken(red, 10%);
+  }
+
+  &.disabled {
+    background-color: grey;
+  }
+}

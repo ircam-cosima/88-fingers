@@ -1,4 +1,5 @@
 import * as soundworks from 'soundworks/client';
+import PlacerView from './PlacerView';
 import PlayerRenderer from './PlayerRenderer';
 
 const audioContext = soundworks.audioContext;
@@ -21,7 +22,9 @@ export default class PlayerExperience extends soundworks.Experience {
     super();
 
     this.platform = this.require('platform', { features: ['wake-lock'] });
-    this.placer = this.require('placer');
+    this.placer = this.require('placer', {
+      view: new PlacerView(),
+    });
   }
 
   init() {
