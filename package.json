@@ -1,8 +1,7 @@
 {
-  "name": "soundworks-template",
+  "name": "88-fingers",
   "authors": [
     "Benjamin Matuszewski",
-    "Sébastien Robaszkiewicz",
     "Norbert Schnell"
   ],
   "description": "Soundworks application template.",

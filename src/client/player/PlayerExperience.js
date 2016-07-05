@@ -1,4 +1,5 @@
 import * as soundworks from 'soundworks/client';
+import PlacerView from './PlacerView';
 import PlayerRenderer from './PlayerRenderer';
 import userTiming from './user-timing';
 
@@ -28,7 +29,9 @@ export default class PlayerExperience extends soundworks.Experience {
     super();
 
     this.platform = this.require('platform', { features: ['wake-lock'] });
-    this.checkin = this.require('checkin');
+    this.placer = this.require('placer', {
+      view: new PlacerView(),
+    });
     this.params = this.require('shared-params');
 
     this.noteIsOn = false;
