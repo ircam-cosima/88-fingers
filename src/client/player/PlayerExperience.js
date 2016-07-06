@@ -24,7 +24,7 @@ const viewTemplate = `
       <p class="message">Merci !</p>
     <% } %>
 
-    <canvas id="note" width="100" height="260"></canvas>
+    <canvas id="note"></canvas>
   </div>
 `;
 
@@ -55,14 +55,18 @@ class PlayerView extends soundworks.View {
     const label = this._label;
     const octava = parseInt(label.split('/')[1]);
     const clef = octava < 4 ? 'bass' : 'treble';
+
+    const w = 100;
+    const h = 260;
+
+    const ctx = this.$canvas.getContext('2d');
+    ctx.canvas.width = w;
+    ctx.canvas.height = h;
+
     const renderer = new Vex.Flow.Renderer(this.$canvas,
       Vex.Flow.Renderer.Backends.CANVAS);
 
-    const ctx = this.$canvas.getContext('2d');
-
-    const stave = new Vex.Flow.Stave(0, 80, 100, {
-      fill_style: '#353535',
-    });
+    const stave = new Vex.Flow.Stave(0, 80, 100, { fill_style: '#353535' });
 
     stave.addClef(clef);
     stave.setContext(ctx).draw();
@@ -77,6 +81,28 @@ class PlayerView extends soundworks.View {
       note.addAccidental(0, new Vex.Flow.Accidental('#'))
 
     Vex.Flow.Formatter.FormatAndDraw(ctx, stave, [note]);
+
+
+    // invert colors
+    const imageData = ctx.getImageData(0, 0, 100, 260);
+    const data = imageData.data;
+    let lastDrawnPixelIndex = null;
+
+    for (let i = 0; i < data.length; i += 4) {
+      // if the pixel is not transparent
+      if (data[i+3] !== 0)
+        lastDrawnPixelIndex = i;
+
+      data[i] = 255 - data[i];
+      data[i+1] = 255 - data[i+1];
+      data[i+2] = 255 - data[i+2];
+    }
+
+    // define line of the last pixel (4 values per pixels * 100 pixels per lines)
+    const line = Math.ceil(lastDrawnPixelIndex / (4 * w));
+    const yShift = h - line;
+
+    ctx.putImageData(imageData, 0, yShift);
   }
 }
 

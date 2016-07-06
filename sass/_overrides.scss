@@ -98,9 +98,6 @@
     position: absolute;
     right: 20px;
     bottom: 20px;
-    background-color: rgba(255, 255, 255, 0.95);
-    border-radius: 2px;
-    padding: 0 4px;
   }
 
   #intensity {
@@ -129,6 +126,7 @@
 
     line {
       stroke: white;
+      stroke-width: 2px;
     }
   }
 
