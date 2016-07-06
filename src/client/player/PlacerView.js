@@ -59,7 +59,7 @@ const defaultViewContent = {
 
 export default class KeyboardView extends SegmentedView {
   constructor(template = tmpl, content = defaultViewContent, event, options) {
-    super(template, content, event, options);
+    super(template, content, event, { id: 'keyboard' });
 
     this.$elementInfosMap = new Map();
     this.$keys = [];
@@ -175,7 +175,7 @@ export default class KeyboardView extends SegmentedView {
       const height = keyHeight * unit;
 
 
-      const $key = document.createElement('rect');
+      const $key = document.createElement('div');
       $key.classList.add('key', type);
 
       $key.style.left = `${x}px`;

@@ -23,7 +23,8 @@
     "debug": "^2.1.2",
     "jazz-midi": "^1.5.0",
     "soundworks": "collective-soundworks/soundworks#v1.1.1",
-    "source-map-support": "^0.4.0"
+    "source-map-support": "^0.4.0",
+    "vexflow": "^1.2.53"
   },
   "devDependencies": {
     "babel-core": "^6.6.5",

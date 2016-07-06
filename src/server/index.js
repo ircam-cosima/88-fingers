@@ -16,18 +16,18 @@ switch(process.env.ENV) {
 const firstNoteNumber = 21;
 const numberOfNotes = 88;
 const noteNames = {
-  0: 'do',
-  1: 'do#',
-  2: 'ré',
-  3: 'ré#',
-  4: 'mi',
-  5: 'fa',
-  6: 'fa#',
-  7: 'sol',
-  8: 'sol#',
-  9: 'la',
-  10: 'la#',
-  11: 'si'
+  0: 'c',
+  1: 'c#',
+  2: 'd',
+  3: 'd#',
+  4: 'e',
+  5: 'f',
+  6: 'f#',
+  7: 'g',
+  8: 'g#',
+  9: 'a',
+  10: 'a#',
+  11: 'b'
 };
 
 function getOctava(midiNote) {
@@ -35,7 +35,7 @@ function getOctava(midiNote) {
 }
 
 function getLabel(midiNote) {
-  return `${noteNames[midiNote % 12]} - ${getOctava(midiNote)}`;
+  return `${noteNames[midiNote % 12]}/${getOctava(midiNote)}`;
 }
 
 const labels = [];
