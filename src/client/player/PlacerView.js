@@ -83,10 +83,18 @@ export default class KeyboardView extends SegmentedView {
   }
 
   updateDisabledPositions(indexes) {
-    if (indexes.length === this.$keys.length)
+    if (indexes.length === this.$keys.length){
       this.content.rejected = true;
-    else
+    } else {
+      // if previously rejected, reset everything
+      if (this.content.rejected) {
+        this.$selectedKey = null;
+        this.content.showBtn = false;
+        this.hasSelection = false;
+      }
+
       this.content.rejected = false;
+    }
 
     this.render('#messages');
 

@@ -7,6 +7,7 @@ const audioContext = soundworks.audioContext;
 const client = soundworks.client;
 
 const viewTemplate = `
+  <div class="fit-container background"></div>
   <div class="fit-container wrapper">
     <% if (state === 'wait') { %>
       <p class="message">Attendez !</p>
@@ -32,6 +33,7 @@ class PlayerView extends soundworks.View {
     super.onRender();
 
     this.$canvas = this.$el.querySelector('#note');
+    this.$background = this.$el.querySelector('.background');
 
     if (this._label)
       this.displayNote();
@@ -41,12 +43,12 @@ class PlayerView extends soundworks.View {
     this._label = label;
   }
 
-  noteOn() {
-    this.$el.classList.add('active');
+  noteOn(value) {
+    this.$background.style.opacity = value;
   }
 
   noteOff() {
-    this.$el.classList.remove('active');
+    this.$background.style.opacity = 0;
   }
 
   displayNote() {
@@ -126,6 +128,7 @@ export default class PlayerExperience extends soundworks.Experience {
     this.fingersDown.add(id);
     this.noteIsOn = true;
     this.lastNoteOnTime = now;
+    this.view.noteOn(intensity);
   }
 
   _handleTouchEnd(id, normX, normY) {
@@ -135,6 +138,7 @@ export default class PlayerExperience extends soundworks.Experience {
       const now = performance.now();
       this.send('note-off', now - this.lastNoteOnTime);
       this.noteIsOn = false;
+      this.view.noteOff();
     }
   }
 
