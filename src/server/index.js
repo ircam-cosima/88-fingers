@@ -3,10 +3,14 @@ import * as soundworks from 'soundworks/server';
 import * as jazz from 'jazz-midi';
 import PlayerExperience from './PlayerExperience';
 import defaultConfig from './config/default';
+import prodConfig from './config/prod';
 
 let config = null;
 
 switch(process.env.ENV) {
+  case 'PROD':
+    config = prodConfig;
+    break;
   default:
     config = defaultConfig;
     break;
@@ -77,10 +81,10 @@ const midiOutList = midi.MidiOutList();
 let outName = '';
 let outIndex = -1;
 
-if(midiOutList.length > 0) {
+if (midiOutList.length > 0) {
   console.log('Available MIDI output ports');
 
-  for(let i = 0; i < midiOutList.length; i++) {
+  for (let i = 0; i < midiOutList.length; i++) {
     const str = midiOutList[i];
     console.log('  ' + i + ': ' + str);
 
@@ -91,7 +95,7 @@ if(midiOutList.length > 0) {
     }
   }
 
-  if(outIndex >= 0) {
+  if (outIndex >= 0) {
     console.log(`Opening MIDI output port ${outIndex} (${outName})`);
     midi.MidiOutOpen(outIndex);
   } else if (midiOutList.length > 0) {
