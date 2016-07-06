@@ -9,6 +9,7 @@
 # ignore all config except default
 /src/server/config/*
 !/src/server/config/default.js
+!/src/server/config/prod.js
 
 # Application instance specific
 /logs
