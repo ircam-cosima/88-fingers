@@ -115,11 +115,9 @@ export default {
     <% } else { %>
       <div class="section-top flex-middle"></div>
       <div class="section-center flex-center">
-          <p class="big">
-            <%= intro %>
-            <br />
-            <b><%= globals.appName %></b>
-          </p>
+        <p class="big">
+          <b><%= globals.appName %></b>
+        </p>
       </div>
       <div class="section-bottom flex-middle">
         <p class="small soft-blink"><%= instructions %></p>

@@ -11,10 +11,14 @@ export default class PlayerExperience extends Experience {
 
     this.params = this.require('shared-params');
     this.placer = this.require('placer');
+
+    this.onPanic = this.onPanic.bind(this);
   }
 
   // if anything needs to append when the experience starts
-  start() {}
+  start() {
+    this.params.addParamListener('panic', this.onPanic);
+  }
 
   // if anything needs to happen when a client enters the performance (*i.e.*
   // starts the experience on the client side), write it in the `enter` method
@@ -25,7 +29,7 @@ export default class PlayerExperience extends Experience {
       const index = client.index;
       const pitch = this.midiNotes[index];
 
-      const velocity = Math.floor(128 * intensity);
+      const velocity = Math.floor(1 + 127 * intensity);
       this.noteOn(pitch, velocity);
     });
 
@@ -56,7 +60,7 @@ export default class PlayerExperience extends Experience {
     this.midi.MidiOut(144, pitch, velocity);
     this.noteIsOn[pitch] = true;
 
-    //console.log("note on:", pitch, velocity);
+    console.log("note on:", pitch, velocity);
   }
 
   noteOff(pitch) {
@@ -66,34 +70,7 @@ export default class PlayerExperience extends Experience {
     //console.log("note off:", pitch);
   }
 
-  // noteOn(pitch, velocity) {
-  //   if(this.noteIsOn[pitch])
-  //     this.noteOff(pitch);
-  //
-  //   const message = [144, pitch, velocity];
-  //
-  //   try {
-  //     this.midiOutput.sendMessage(message);
-  //   } catch(error) {
-  //     console.log('MIDI note on output error:', error);
-  //   }
-  //
-  //   this.noteIsOn[pitch] = true;
-  //
-  //   console.log("note on:", message);
-  // }
-  //
-  // noteOff(pitch) {
-  //   const message = [128, pitch, 64];
-  //
-  //   try {
-  //     this.midiOutput.sendMessage(message);
-  //   } catch(error) {
-  //     console.log('MIDI note off output error:', error);
-  //   }
-  //
-  //   this.noteIsOn[pitch] = false;
-  //
-  //   console.log("note off:", message);
-  // }
+  onPanic() {
+    this.midiNotes.forEach((pitch) => this.noteOff(pitch));
+  }
 }

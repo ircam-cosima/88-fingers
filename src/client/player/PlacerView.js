@@ -50,9 +50,9 @@ const tmpl = `
 `;
 
 const defaultViewContent = {
-  instructions: 'Select your key',
-  send: 'Send',
-  reject: 'Sorry, no key<br />is available',
+  instructions: `Sélectionnez<br />votre touche`,
+  send: `Valider`,
+  reject: `Désolé, aucune touche n'est disponible`,
   showBtn: false,
   rejected: false,
 };
@@ -87,7 +87,9 @@ export default class KeyboardView extends SegmentedView {
       this.content.rejected = true;
     } else {
       // if previously rejected, reset everything
-      if (this.content.rejected) {
+      const position = this.$elementInfosMap.get(this.$selectedKey);
+
+      if (this.content.rejected || (position && indexes.indexOf(position.index) !== -1)) {
         this.$selectedKey = null;
         this.content.showBtn = false;
         this.hasSelection = false;

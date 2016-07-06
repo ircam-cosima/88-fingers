@@ -109,12 +109,19 @@ if(midiOutList.length > 0) {
  *  setup shared parameters, controller, and player
  *
  */
+class Controller extends soundworks.BasicSharedController {
+  constructor() {
+    super('controller');
+    this.auth = this.require('auth');
+  }
+}
+
 const sharedParams = soundworks.server.require('shared-params');
 sharedParams.addText('numPlayers', 'num players', 0, ['controller']);
 sharedParams.addEnum('state', 'state', ['wait', 'running', 'end'], 'wait');
 sharedParams.addTrigger('panic', 'all notes off');
 
-const controller = new soundworks.BasicSharedController('controller');
+const controller = new Controller();
 const experience = new PlayerExperience(midiNotes, midi);
 
 // start application

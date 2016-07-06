@@ -10,7 +10,7 @@ const cwd = process.cwd();
 export default {
   // name of the application, used in the `.ejs` template and by default in
   // the `platform` service to populate its view
-  appName: '88 Fingers',
+  appName: '88 Doigts',
 
   // name of the environnement ('production' enable cache in express application)
   env: 'development',
@@ -77,7 +77,7 @@ export default {
   },
 
   // password to be used by the `auth` service
-  password: '',
+  password: 'test123',
 
   // configuration of the `osc` service
   osc: {

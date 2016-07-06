@@ -89,21 +89,30 @@
   // wait, thx
   .message {
     width: 100%;
-    position: relative;
+    position: absolute;
     top: 30%;
     text-align: center;
+    font-weight: bold;
+
+    // &.wait {
+    //   padding-left: 50px;
+    //   text-align: center;
+    //   box-sizing: border-box;
+    // }
   }
 
   #note {
     position: absolute;
     right: 20px;
     bottom: 20px;
+    opacity: 0.9;
   }
 
   #intensity {
     position: relative;
     height: 100%;
     width: 100px;
+    opacity: 0.9;
 
     .forte, .piano {
       font-family:  Times;
@@ -128,6 +137,10 @@
       stroke: white;
       stroke-width: 2px;
     }
+  }
+
+  .wait #note, .wait #intensity {
+    opacity: 0.4;
   }
 
 }

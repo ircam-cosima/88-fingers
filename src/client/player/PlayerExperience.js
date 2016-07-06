@@ -8,10 +8,11 @@ const client = soundworks.client;
 
 const viewTemplate = `
   <div class="fit-container background"></div>
-  <div class="fit-container wrapper">
-    <% if (state === 'wait') { %>
-      <p class="message">Attendez !</p>
-    <% } else if (state === 'running') { %>
+  <div class="fit-container wrapper <%= state %>">
+    <% if (state === 'wait' || state === 'running') { %>
+      <% if (state === 'wait') { %>
+        <p class="message wait">Merci de<br />patienter !</p>
+      <% } %>
       <div id="intensity">
         <p class="forte">fff</p>
         <svg viewBox="0 0 100 100" preserveAspectRatio="none">
@@ -20,11 +21,10 @@ const viewTemplate = `
         </svg>
         <p class="piano">ppp</p>
       </div>
+      <canvas id="note"></canvas>
     <% } else { %>
       <p class="message">Merci !</p>
     <% } %>
-
-    <canvas id="note"></canvas>
   </div>
 `;
 
@@ -35,7 +35,7 @@ class PlayerView extends soundworks.View {
     this.$canvas = this.$el.querySelector('#note');
     this.$background = this.$el.querySelector('.background');
 
-    if (this._label)
+    if (this._label && this.$canvas)
       this.displayNote();
   }
 
@@ -83,7 +83,7 @@ class PlayerView extends soundworks.View {
     Vex.Flow.Formatter.FormatAndDraw(ctx, stave, [note]);
 
 
-    // invert colors
+    // invert colors and shift image in y axis
     const imageData = ctx.getImageData(0, 0, 100, 260);
     const data = imageData.data;
     let lastDrawnPixelIndex = null;
@@ -102,6 +102,7 @@ class PlayerView extends soundworks.View {
     const line = Math.ceil(lastDrawnPixelIndex / (4 * w));
     const yShift = h - line;
 
+    ctx.clearRect(0, 0, w, h);
     ctx.putImageData(imageData, 0, yShift);
   }
 }
@@ -137,7 +138,7 @@ export default class PlayerExperience extends soundworks.Experience {
     this.viewContent.state = state;
     this.view.render();
 
-    if(state === 'running') {
+    if (state === 'running') {
       this.surface.addListener('touchstart', this._handleTouchStart);
       this.surface.addListener('touchend', this._handleTouchEnd);
     } else {
@@ -148,8 +149,9 @@ export default class PlayerExperience extends soundworks.Experience {
 
   _handleTouchStart(id, normX, normY) {
     const now = performance.now();
-    const intensity = Math.min(0.999, 1 - normY);
-    this.send('note-on', 1 - normY, now - this.lastNoteOnTime);
+    const scaledY = (0.9 - normY) / 0.8;
+    const intensity = Math.max(0, Math.min(0.999, scaledY));
+    this.send('note-on', intensity, now - this.lastNoteOnTime);
 
     this.fingersDown.add(id);
     this.noteIsOn = true;
@@ -160,8 +162,9 @@ export default class PlayerExperience extends soundworks.Experience {
   _handleTouchEnd(id, normX, normY) {
     this.fingersDown.delete(id);
 
-    if(this.noteIsOn && this.fingersDown.size === 0) {
+    if (this.noteIsOn && this.fingersDown.size === 0) {
       const now = performance.now();
+
       this.send('note-off', now - this.lastNoteOnTime);
       this.noteIsOn = false;
       this.view.noteOff();
