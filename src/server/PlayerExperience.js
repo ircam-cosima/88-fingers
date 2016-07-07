@@ -15,11 +15,13 @@ export default class PlayerExperience extends Experience {
     this.placer = this.require('placer');
 
     this.onPanic = this.onPanic.bind(this);
+    this.onStateChange = this.onStateChange.bind(this);
   }
 
   // if anything needs to append when the experience starts
   start() {
     this.params.addParamListener('panic', this.onPanic);
+    this.params.addParamListener('state', this.onStateChange);
 
     scoreRecorder.init(this.config.get('scoreRecordDirectory'));
   }
@@ -74,6 +76,11 @@ export default class PlayerExperience extends Experience {
 
     //console.log("note off:", pitch);
     scoreRecorder.record('note-off', pitch);
+  }
+
+  onStateChange(state) {
+    if (state === 'running')
+      scoreRecorder.start();
   }
 
   onPanic() {

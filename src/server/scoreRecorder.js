@@ -28,6 +28,11 @@ export default {
     this._tick();
   },
 
+  start() {
+    this._startTime = process.hrtime();
+    console.log('recorder:startTime', this._startTime);
+  },
+
   record(type, pitch, velocity = 64) {
     let cmd;
     if (type === 'note-on')
@@ -35,7 +40,9 @@ export default {
     else if (type === 'note-off')
       cmd = 128;
 
-    const msg = `${cmd}\t${pitch}\t${velocity}\n`;
+    const diff = process.hrtime(this._startTime);
+    const time = diff[0] + (diff[1] * 1e-9);
+    const msg = `${time}\t${cmd}\t${pitch}\t${velocity}\n`;
     this.writable.write(msg);
   },
 
