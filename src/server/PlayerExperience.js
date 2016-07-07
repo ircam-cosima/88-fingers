@@ -1,4 +1,5 @@
 import { Experience } from 'soundworks/server';
+import scoreRecorder from './scoreRecorder';
 
 // server-side 'player' experience.
 export default class PlayerExperience extends Experience {
@@ -10,6 +11,7 @@ export default class PlayerExperience extends Experience {
     this.midi = midi;
 
     this.params = this.require('shared-params');
+    this.config = this.require('shared-config');
     this.placer = this.require('placer');
 
     this.onPanic = this.onPanic.bind(this);
@@ -18,6 +20,8 @@ export default class PlayerExperience extends Experience {
   // if anything needs to append when the experience starts
   start() {
     this.params.addParamListener('panic', this.onPanic);
+
+    scoreRecorder.init(this.config.get('scoreRecordDirectory'));
   }
 
   // if anything needs to happen when a client enters the performance (*i.e.*
@@ -61,6 +65,7 @@ export default class PlayerExperience extends Experience {
     this.noteIsOn[pitch] = true;
 
     console.log("note on:", pitch, velocity);
+    scoreRecorder.record('note-on', pitch, velocity);
   }
 
   noteOff(pitch) {
@@ -68,6 +73,7 @@ export default class PlayerExperience extends Experience {
     this.noteIsOn[pitch] = false;
 
     //console.log("note off:", pitch);
+    scoreRecorder.record('note-off', pitch);
   }
 
   onPanic() {

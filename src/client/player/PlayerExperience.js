@@ -44,6 +44,7 @@ class PlayerView extends soundworks.View {
   }
 
   noteOn(value) {
+    value = 0.1 + value * 0.9;
     this.$background.style.opacity = value;
   }
 
@@ -66,7 +67,7 @@ class PlayerView extends soundworks.View {
     const renderer = new Vex.Flow.Renderer(this.$canvas,
       Vex.Flow.Renderer.Backends.CANVAS);
 
-    const stave = new Vex.Flow.Stave(0, 80, 100, { fill_style: '#353535' });
+    const stave = new Vex.Flow.Stave(0, 80, 100, { fill_style: '#000000' });
 
     stave.addClef(clef);
     stave.setContext(ctx).draw();
@@ -147,7 +148,7 @@ export default class PlayerExperience extends soundworks.Experience {
     }
   }
 
-  _handleTouchStart(id, normX, normY) {
+  _handleTouchStart(id, normX, normY, touch, touchEvent) {
     const now = performance.now();
     const scaledY = (0.9 - normY) / 0.8;
     const intensity = Math.max(0, Math.min(0.999, scaledY));

@@ -75,6 +75,7 @@ export default class KeyboardView extends SegmentedView {
 
     this._touchId = null;
     this._cursorX = 0;
+    this._isDisplayed = false;
 
     this._onSelectionChange = this._onSelectionChange.bind(this);
     this._onCursorTouchStart = this._onCursorTouchStart.bind(this);
@@ -146,7 +147,7 @@ export default class KeyboardView extends SegmentedView {
       this.render('#confirm-container');
 
       this.installEvents({
-        'click .btn': (e) => {
+        'touchstart .btn': (e) => {
           const position = this.$elementInfosMap.get(this.$selectedKey);
 
           if (position)
@@ -209,17 +210,20 @@ export default class KeyboardView extends SegmentedView {
         this.keyboardWidth += width;
     }
 
-    // this._updateCursor();
-
     this.installEvents({
       'touchstart .key': this._onSelectionChange
-    }, true);
+    });
   }
 
   onResize(viewportWidth, viewportHeight, orientation) {
     super.onResize(viewportWidth, viewportHeight, orientation);
 
     this._updateCursorSize();
+
+    if (!this._isDisplayed) {
+      this._onCursorTouchStart(undefined, Math.random());
+      this._isDisplayed = true;
+    }
   }
 
   reject(disabledPositions) {
@@ -240,19 +244,37 @@ export default class KeyboardView extends SegmentedView {
     this.$cursor.style.width = `${this._cursorWidth}px`;
     this.$cursor.style.height = `${height}px`;
     this.$cursor.style.left = `${this._normCursorX * screenWidth}px`;
+
+    if (this._normCursorX) {
+      const viewportWidth = this.viewportWidth;
+      // update cursor
+      let cursorX = (viewportWidth * this._normCursorX);
+      cursorX = Math.max(cursorX, 0);
+      cursorX = Math.min(cursorX, viewportWidth - this._cursorWidth);
+
+      if (cursorX !== this._cursorX) {
+        let keyboardX = -1 * cursorX / this._screenToKeyboardRatio;
+
+        this.$cursor.style.left = `${cursorX}px`;
+        this.$keyboardLayer.style.left = `${keyboardX}px`;
+
+        this._cursorX = cursorX;
+        this._normCursorX = cursorX / viewportWidth;
+      }
+    }
   }
 
-  _onCursorTouchStart(id, normX, normY, touchEvent) {
+  _onCursorTouchStart(id, normX, normY, touch, touchEvent) {
     if (!this._touchId)
       this._touchId = id;
 
     const x = this.viewportWidth * normX;
     // if touch is outside cursor, jump to position else do nothing
     if (x < this._cursorX || x > (this._cursorX + this._cursorWidth))
-      this._onCursorTouchMove(id, normX, normY, touchEvent);
+      this._onCursorTouchMove(id, normX, normY);
   }
 
-  _onCursorTouchMove(id, normX, normY, touchEvent) {
+  _onCursorTouchMove(id, normX, normY, touch, touchEvent) {
     if (this._touchId === id) {
       const viewportWidth = this.viewportWidth;
       const halfCursor = this._cursorWidth / 2;

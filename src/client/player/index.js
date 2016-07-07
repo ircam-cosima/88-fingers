@@ -14,4 +14,7 @@ window.addEventListener('load', () => {
   const experience = new PlayerExperience();
 
   soundworks.client.start();
+
+  document.addEventListener('touchstart', (e) => e.preventDefault());
+  document.addEventListener('touchmove', (e) => e.preventDefault());
 });

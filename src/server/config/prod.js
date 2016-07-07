@@ -10,7 +10,7 @@ const cwd = process.cwd();
 export default {
   // name of the application, used in the `.ejs` template and by default in
   // the `platform` service to populate its view
-  appName: '88 Doigts',
+  appName: '88 Finger',
 
   // name of the environnement ('production' enable cache in express application)
   env: 'production',
@@ -52,6 +52,9 @@ export default {
     capacity: Infinity,
   },
 
+  // path to the score recording
+  scoreRecordDirectory: path.join(cwd, 'logs', 'score'),
+
   // socket.io configuration
   socketIO: {
     url: '',
@@ -77,7 +80,7 @@ export default {
   },
 
   // password to be used by the `auth` service
-  password: 'test123',
+  password: 'fluxus88',
 
   // configuration of the `osc` service
   osc: {

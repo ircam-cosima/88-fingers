@@ -31,17 +31,25 @@
     border-radius: 3px;
 
     &::before, &::after {
-      content: "";
       display: block;
       position: absolute;
       height: 70%;
+      line-height: 70%;
       top: 15%;
-      width: 2px;
+      width: 4px;
       background-color: darken($cursorColor, 6%);
     }
 
-    &::before { left: 5px; }
-    &::after { right: 5px; }
+    &::before {
+      content: "";
+      left: 5px;
+    }
+
+    &::after {
+      content: "";
+      right: 5px;
+    }
+
   }
 
   .key {
