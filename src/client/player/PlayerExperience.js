@@ -3,6 +3,8 @@ import PlacerView from './PlacerView';
 import userTiming from './user-timing';
 import Vex from 'vexflow';
 
+import DeferService from '../shared/DeferService';
+
 const audioContext = soundworks.audioContext;
 const client = soundworks.client;
 
@@ -117,6 +119,9 @@ export default class PlayerExperience extends soundworks.Experience {
     this.platform = this.require('platform', { features: ['wake-lock'] });
     this.placer = this.require('placer', { view: new PlacerView() });
     this.params = this.require('shared-params');
+
+    // this.defer = this.require('defer', { service: 'placer' });
+    // setTimeout(() => { this.defer.ready(); }, 10000);
 
     this.noteIsOn = false;
     this.lastNoteOnTime = -999999;
