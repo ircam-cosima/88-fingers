@@ -53,8 +53,8 @@ export default {
   // content of the `platform` service
   'service:platform': {
     isCompatible: null,
-    errorMessage: `Désolé,<br />votre terminal n'est pas compatible avec cette application`,
-    instructions: `Touchez l'écran pour commencer`,
+    errorMessage: `Sorry,<br />your device is not compatible with the application`,
+    instructions: `Touch the screen to start`,
   },
 
   // content of the `sync` service

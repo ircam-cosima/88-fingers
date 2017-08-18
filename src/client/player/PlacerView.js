@@ -50,9 +50,9 @@ const tmpl = `
 `;
 
 const defaultViewContent = {
-  instructions: `Sélectionnez<br />votre touche`,
-  send: `Valider`,
-  reject: `Désolé, aucune touche n'est disponible`,
+  instructions: `Select your key`,
+  send: `Send`,
+  reject: `Sorry, no key is available`,
   showBtn: false,
   rejected: false,
 };

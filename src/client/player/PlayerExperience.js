@@ -13,7 +13,7 @@ const viewTemplate = `
   <div class="fit-container wrapper <%= state %>">
     <% if (state === 'wait' || state === 'running') { %>
       <% if (state === 'wait') { %>
-        <p class="message wait">Merci de<br />patienter !</p>
+        <p class="message wait">Please wait</p>
       <% } %>
       <div id="intensity">
         <p class="forte">fff</p>
@@ -25,7 +25,7 @@ const viewTemplate = `
       </div>
       <canvas id="note"></canvas>
     <% } else { %>
-      <p class="message">Merci !</p>
+      <p class="message">Thanks!</p>
     <% } %>
   </div>
 `;
@@ -116,7 +116,7 @@ export default class PlayerExperience extends soundworks.Experience {
   constructor() {
     super();
 
-    this.platform = this.require('platform', { features: ['wake-lock'] });
+    this.platform = this.require('platform', { /*features: ['wake-lock']*/ });
     this.placer = this.require('placer', { view: new PlacerView() });
     this.params = this.require('shared-params');
 

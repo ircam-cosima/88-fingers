@@ -18,7 +18,7 @@ switch(process.env.ENV) {
 
 // define labels
 const firstNoteNumber = 21;
-const numberOfNotes = 88;
+const numNotes = 88;
 const noteNames = {
   0: 'c',
   1: 'c#',
@@ -45,7 +45,7 @@ function getLabel(midiNote) {
 const labels = [];
 const midiNotes = [];
 
-for (let i = 0; i < numberOfNotes; i++) {
+for (let i = 0; i < numNotes; i++) {
   const note = i + firstNoteNumber;
   const label = getLabel(note);
   labels.push(label);
