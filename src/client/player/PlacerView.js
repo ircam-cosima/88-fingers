@@ -1,18 +1,18 @@
 import { View, SegmentedView, TouchSurface } from 'soundworks/client';
 
 const keyboardDef = {
-  0: { type: 'w', position: 0 },
-  1: { type: 'b', position: 2 },
-  2: { type: 'w', position: 3 },
-  3: { type: 'b', position: 5 },
-  4: { type: 'w', position: 6 },
-  5: { type: 'w', position: 9 },
-  6: { type: 'b', position: 11 },
-  7: { type: 'w', position: 12 },
-  8: { type: 'b', position: 14 },
-  9: { type: 'w', position: 15 },
-  10: { type: 'b', position: 17 },
-  11: { type: 'w', position: 18 },
+  0: { type: 'w', position: 0 },
+  1: { type: 'b', position: 2 },
+  2: { type: 'w', position: 3 },
+  3: { type: 'b', position: 5 },
+  4: { type: 'w', position: 6 },
+  5: { type: 'w', position: 9 },
+  6: { type: 'b', position: 11 },
+  7: { type: 'w', position: 12 },
+  8: { type: 'b', position: 14 },
+  9: { type: 'w', position: 15 },
+  10: { type: 'b', position: 17 },
+  11: { type: 'w', position: 18 },
 };
 
 // @note : changing `width`(s) here can break position definitions
@@ -23,7 +23,7 @@ const keyDefinitions = {
 
 const unit = 10; // nbr of pixels for 1 unit
 const octavaWidth = 21;
-const tmpl = `
+const defaultTemplate = `
   <div id="instruction-container" class="flex-middle">
     <p><%= instructions %></p>
   </div>
@@ -49,7 +49,7 @@ const tmpl = `
   </div>
 `;
 
-const defaultViewContent = {
+const defaultModel = {
   instructions: `Select your key`,
   send: `Send`,
   reject: `Sorry, no key is available`,
@@ -57,9 +57,9 @@ const defaultViewContent = {
   rejected: false,
 };
 
-export default class KeyboardView extends SegmentedView {
-  constructor(template = tmpl, content = defaultViewContent, event, options) {
-    super(template, content, event, { id: 'keyboard' });
+class KeyboardView extends SegmentedView {
+  constructor(template = defaultTemplate, model = defaultModel, event, options) {
+    super(template, model, event, { id: 'keyboard' });
 
     this.$elementInfosMap = new Map();
     this.$keys = [];
@@ -84,19 +84,19 @@ export default class KeyboardView extends SegmentedView {
   }
 
   updateDisabledPositions(indexes) {
-    if (indexes.length === this.$keys.length){
-      this.content.rejected = true;
+    if (indexes.length === this.$keys.length) {
+      this.model.rejected = true;
     } else {
       // if previously rejected, reset everything
       const position = this.$elementInfosMap.get(this.$selectedKey);
 
-      if (this.content.rejected || (position && indexes.indexOf(position.index) !== -1)) {
+      if (this.model.rejected || (position && indexes.indexOf(position.index) !== -1)) {
         this.$selectedKey = null;
-        this.content.showBtn = false;
+        this.model.showBtn = false;
         this.hasSelection = false;
       }
 
-      this.content.rejected = false;
+      this.model.rejected = false;
     }
 
     this.render('#messages');
@@ -143,7 +143,7 @@ export default class KeyboardView extends SegmentedView {
     this.$selectedKey = $key;
 
     if (!this.hasSelection) {
-      this.content.showBtn = true;
+      this.model.showBtn = true;
       this.render('#confirm-container');
 
       this.installEvents({
@@ -170,7 +170,7 @@ export default class KeyboardView extends SegmentedView {
       const note = coordinates[i];
       const normNote = note % 12;
       const { type, position } = keyboardDef[normNote];
-      const { width: keyWidth, height: keyHeight, zIndex } = keyDefinitions[type];
+      const { width: keyWidth, height: keyHeight, zIndex } = keyDefinitions[type];
 
       if (i === 0)
         offset = position;
@@ -230,7 +230,7 @@ export default class KeyboardView extends SegmentedView {
     this.updateDisabledPositions(disabledPositions);
   }
 
-  onSelect(callback) {
+  setSelectCallack(callback) {
     this._onSelect = callback;
   }
 
@@ -270,7 +270,7 @@ export default class KeyboardView extends SegmentedView {
 
     const x = this.viewportWidth * normX;
     // if touch is outside cursor, jump to position else do nothing
-    if (x < this._cursorX || x > (this._cursorX + this._cursorWidth))
+    if (x < this._cursorX || x > (this._cursorX + this._cursorWidth))
       this._onCursorTouchMove(id, normX, normY);
   }
 
@@ -300,3 +300,5 @@ export default class KeyboardView extends SegmentedView {
   }
 
 }
+
+export default KeyboardView;

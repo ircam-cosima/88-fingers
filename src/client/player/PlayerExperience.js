@@ -1,14 +1,13 @@
 import * as soundworks from 'soundworks/client';
 import PlacerView from './PlacerView';
 import userTiming from './user-timing';
-import Vex from 'vexflow';
-
 import DeferService from '../shared/DeferService';
+//import Vex from 'vexflow';
 
 const audioContext = soundworks.audioContext;
 const client = soundworks.client;
 
-const viewTemplate = `
+const template = `
   <div class="fit-container background"></div>
   <div class="fit-container wrapper <%= state %>">
     <% if (state === 'wait' || state === 'running') { %>
@@ -31,6 +30,14 @@ const viewTemplate = `
 `;
 
 class PlayerView extends soundworks.View {
+  constructor(template, model, events, options) {
+    super(template, model, events, options);
+
+    this.$canvas = null;
+    this.$background = null;
+    this._label = null;
+  }
+
   onRender() {
     super.onRender();
 
@@ -39,6 +46,13 @@ class PlayerView extends soundworks.View {
 
     if (this._label && this.$canvas)
       this.displayNote();
+  }
+
+  setState(state) {
+    if (state !== this.model.state) {
+      this.model.state = state;
+      this.render('.wrapper');
+    }
   }
 
   setLabel(label) {
@@ -66,24 +80,22 @@ class PlayerView extends soundworks.View {
     ctx.canvas.width = w;
     ctx.canvas.height = h;
 
-    const renderer = new Vex.Flow.Renderer(this.$canvas,
-      Vex.Flow.Renderer.Backends.CANVAS);
+    // const renderer = new Vex.Flow.Renderer(this.$canvas, Vex.Flow.Renderer.Backends.CANVAS);
+    // const stave = new Vex.Flow.Stave(0, 80, 100, { fill_style: '#000000' });
 
-    const stave = new Vex.Flow.Stave(0, 80, 100, { fill_style: '#000000' });
+    // stave.addClef(clef);
+    // stave.setContext(ctx).draw();
 
-    stave.addClef(clef);
-    stave.setContext(ctx).draw();
+    // const note = new Vex.Flow.StaveNote({
+    //   keys: [label],
+    //   duration: "1",
+    //   clef: clef,
+    // });
 
-    const note = new Vex.Flow.StaveNote({
-      keys: [label],
-      duration: "1",
-      clef: clef,
-    });
+    // if (/#/.test(label))
+    //   note.addAccidental(0, new Vex.Flow.Accidental('#'))
 
-    if (/#/.test(label))
-      note.addAccidental(0, new Vex.Flow.Accidental('#'))
-
-    Vex.Flow.Formatter.FormatAndDraw(ctx, stave, [note]);
+    // Vex.Flow.Formatter.FormatAndDraw(ctx, stave, [note]);
 
 
     // invert colors and shift image in y axis
@@ -93,12 +105,12 @@ class PlayerView extends soundworks.View {
 
     for (let i = 0; i < data.length; i += 4) {
       // if the pixel is not transparent
-      if (data[i+3] !== 0)
+      if (data[i + 3] !== 0)
         lastDrawnPixelIndex = i;
 
       data[i] = 255 - data[i];
-      data[i+1] = 255 - data[i+1];
-      data[i+2] = 255 - data[i+2];
+      data[i + 1] = 255 - data[i + 1];
+      data[i + 2] = 255 - data[i + 2];
     }
 
     // define line of the last pixel (4 values per pixels * 100 pixels per lines)
@@ -112,13 +124,15 @@ class PlayerView extends soundworks.View {
 
 // this experience plays a sound when it starts, and plays another sound when
 // other clients join the experience
-export default class PlayerExperience extends soundworks.Experience {
+class PlayerExperience extends soundworks.Experience {
   constructor() {
     super();
 
     this.platform = this.require('platform', { /*features: ['wake-lock']*/ });
-    this.placer = this.require('placer', { view: new PlacerView() });
-    this.params = this.require('shared-params');
+    this.placer = this.require('placer');
+    this.sharedParams = this.require('shared-params');
+
+    this.placer.view = new PlacerView();
 
     // this.defer = this.require('defer', { service: 'placer' });
     // setTimeout(() => { this.defer.ready(); }, 10000);
@@ -131,18 +145,8 @@ export default class PlayerExperience extends soundworks.Experience {
     this._handleTouchEnd = this._handleTouchEnd.bind(this);
   }
 
-  init() {
-    // initialize the view
-    this.viewTemplate = viewTemplate;
-    this.viewContent = { state: 'wait' };
-    this.viewCtor = PlayerView;
-    this.viewOptions = { preservePixelRatio: true };
-    this.view = this.createView();
-  }
-
   set state(state) {
-    this.viewContent.state = state;
-    this.view.render();
+    this.view.setState(state);
 
     if (state === 'running') {
       this.surface.addListener('touchstart', this._handleTouchStart);
@@ -180,13 +184,14 @@ export default class PlayerExperience extends soundworks.Experience {
   start() {
     super.start(); // don't forget this
 
-    if (!this.hasStarted)
-      this.init();
+    this.view = new PlayerView(template, { state: 'wait' }, {}, { preservePixelRatio: true });
 
-    this.show();
-
-    this.view.setLabel(client.label);
-    this.surface = new soundworks.TouchSurface(this.view.$el);
-    this.params.addParamListener('state', (state) => this.state = state);
+    this.show().then(() => {
+      this.view.setLabel(client.label);
+      this.surface = new soundworks.TouchSurface(this.view.$el);
+      this.sharedParams.addParamListener('state', (state) => this.state = state);
+    });
   }
 }
+
+export default PlayerExperience;

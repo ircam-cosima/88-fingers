@@ -1,20 +1,24 @@
-import 'source-map-support/register'; // enable sourcemaps in node
+// enable source-maps in node
+import 'source-map-support/register';
+import path from 'path';
 import * as soundworks from 'soundworks/server';
-import * as jazz from 'jazz-midi';
 import PlayerExperience from './PlayerExperience';
-import defaultConfig from './config/default';
-import prodConfig from './config/prod';
+import ControllerExperience from './ControllerExperience';
+import * as jazz from 'jazz-midi';
 
+const configName = process.env.ENV || 'default';
+const configPath = path.join(__dirname, 'config', configName);
 let config = null;
 
-switch(process.env.ENV) {
-  case 'PROD':
-    config = prodConfig;
-    break;
-  default:
-    config = defaultConfig;
-    break;
+// rely on node `require` for synchronicity
+try {
+  config = require(configPath).default;
+} catch(err) {
+  console.error(`Invalid ENV "${configName}", file "${configPath}.js" not found`);
+  process.exit(1);
 }
+
+process.env.NODE_ENV = config.env;
 
 // define labels
 const firstNoteNumber = 21;
@@ -55,16 +59,16 @@ for (let i = 0; i < numNotes; i++) {
 config.setup.labels = labels;
 config.setup.coordinates = midiNotes;
 
-// configure express environment ('production' enables cache systems)
-process.env.NODE_ENV = config.env;
-
+// initialize the server with configuration informations
 soundworks.server.init(config);
+
+// define the configuration object to be passed to the `.ejs` template
 soundworks.server.setClientConfigDefinition((clientType, config, httpRequest) => {
   return {
-    clientType: clientType,
     env: config.env,
+    clientType: clientType,
+    websockets: config.websockets,
     appName: config.appName,
-    socketIO: config.socketIO,
     version: config.version,
     defaultType: config.defaultClient,
     assetsDomain: config.assetsDomain,
@@ -108,25 +112,9 @@ if (midiOutList.length > 0) {
   console.log('No MIDI output ports available');
 }
 
-/********************************************************
- *
- *  setup shared parameters, controller, and player
- *
- */
-class Controller extends soundworks.BasicSharedController {
-  constructor() {
-    super('controller');
-    this.auth = this.require('auth');
-  }
-}
-
-const sharedParams = soundworks.server.require('shared-params');
-sharedParams.addText('numPlayers', 'num players', 0, ['controller']);
-sharedParams.addEnum('state', 'state', ['wait', 'running', 'end'], 'wait');
-sharedParams.addTrigger('panic', 'all notes off');
-
-const controller = new Controller();
+// create the common server experience for both the soloists and the players
+const controller = new ControllerExperience();
 const experience = new PlayerExperience(midiNotes, midi);
 
-// start application
+// start the application
 soundworks.server.start();

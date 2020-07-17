@@ -1,8 +1,8 @@
 import * as soundworks from 'soundworks/client';
-import viewTemplates from '../shared/viewTemplates';
-import viewContent from '../shared/viewContent';
+import ControllerExperience from './ControllerExperience';
+import serviceViews from '../shared/serviceViews';
 
-class Controller extends soundworks.BasicSharedController {
+class Controller extends ControllerExperience {
   constructor(options) {
     super(options);
     this.auth = this.require('auth');
@@ -10,16 +10,16 @@ class Controller extends soundworks.BasicSharedController {
 }
 
 window.addEventListener('load', () => {
-  const { appName, clientType, socketIO }  = window.soundworksConfig;
+  document.body.classList.remove('loading');
 
-  soundworks.client.init(clientType, { socketIO, appName });
-  soundworks.client.setViewContentDefinitions(viewContent);
-  soundworks.client.setViewTemplateDefinitions(viewTemplates);
+  const config = Object.assign({ appContainer: '#container' }, window.soundworksConfig);
+  soundworks.client.init(config.clientType, config);
 
-  const controller = new Controller({
-    numPlayers: { readOnly: true },
-    state: { type: 'buttons' },
+  soundworks.client.setServiceInstanciationHook((id, instance) => {
+    if (serviceViews.has(id))
+      instance.view = serviceViews.get(id, config);
   });
 
+  const controller = new ControllerExperience(config.assetsDomain);
   soundworks.client.start();
 });

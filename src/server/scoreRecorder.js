@@ -7,7 +7,7 @@ function padLeft(str, value, length) {
   return str;
 }
 
-export default {
+const recorder = {
   init(directory) {
     const date = new Date();
     const now = new Date();
@@ -53,3 +53,5 @@ export default {
     setTimeout(this._tick, 500);
   },
 };
+
+export default recorder;

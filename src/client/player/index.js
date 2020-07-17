@@ -1,20 +1,25 @@
 // import client side soundworks and player experience
 import * as soundworks from 'soundworks/client';
-import PlayerExperience from './PlayerExperience.js';
-import viewTemplates from '../shared/viewTemplates';
-import viewContent from '../shared/viewContent';
+import PlayerExperience from './PlayerExperience';
+import serviceViews from '../shared/serviceViews';
 
-window.addEventListener('load', () => {
-  const { appName, clientType, socketIO }  = window.soundworksConfig;
+function bootstrap() {
+  // configuration received from the server through the `index.html`
+  // @see {~/src/server/index.js}
+  // @see {~/html/default.ejs}
+  const config = Object.assign({ appContainer: '#container' }, window.soundworksConfig);
 
-  soundworks.client.init(clientType, { appName, socketIO });
-  soundworks.client.setViewContentDefinitions(viewContent);
-  soundworks.client.setViewTemplateDefinitions(viewTemplates);
+  soundworks.client.init(config.clientType, config);
+    // configure views for the services
+  soundworks.client.setServiceInstanciationHook((id, instance) => {
+    if (serviceViews.has(id))
+      instance.view = serviceViews.get(id, config);
+  });
 
-  const experience = new PlayerExperience();
-
+  // instanciate the experience of the `player`
+  const playerExperience = new PlayerExperience();
+  // start the application
   soundworks.client.start();
+}
 
-  document.addEventListener('touchstart', (e) => e.preventDefault());
-  document.addEventListener('touchmove', (e) => e.preventDefault());
-});
+window.addEventListener('load', bootstrap);

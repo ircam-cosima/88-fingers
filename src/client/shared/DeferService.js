@@ -20,23 +20,14 @@ class DeferService extends Service {
     super.configure(options);
   }
 
-  init() {
-    this.viewTemplate = template;
-    this.viewCtor = View;
-
-    this.view = this.createView();
-  }
-
   start() {
-    if (!this.hasStarted)
-      this.init();
-
-
-    console.log(this.view);
+    super.start();
+    this.view = new View(template, {}, {}, {});
     this.show();
   }
 
   stop() {
+    super.stop();
     this.hide();
   }
 
@@ -45,5 +36,6 @@ class DeferService extends Service {
   // }
 }
 
-
 serviceManager.register(SERVICE_ID, DeferService);
+
+export default DeferService;

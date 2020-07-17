@@ -2,7 +2,7 @@ import { Experience } from 'soundworks/server';
 import scoreRecorder from './scoreRecorder';
 
 // server-side 'player' experience.
-export default class PlayerExperience extends Experience {
+class PlayerExperience extends Experience {
   constructor(midiNotes, midi) {
     super('player');
 
@@ -87,3 +87,5 @@ export default class PlayerExperience extends Experience {
     this.midiNotes.forEach((pitch) => this.noteOff(pitch));
   }
 }
+
+export default PlayerExperience;

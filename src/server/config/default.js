@@ -1,7 +1,6 @@
 import path from 'path';
 const cwd = process.cwd();
 
-
 // Configuration of the application.
 // Other entries can be added (as long as their name doesn't conflict with
 // existing ones) to define global parameters of the application (e.g. BPM,
@@ -10,7 +9,7 @@ const cwd = process.cwd();
 export default {
   // name of the application, used in the `.ejs` template and by default in
   // the `platform` service to populate its view
-  appName: '88 Finger',
+  appName: '88 Fingers',
 
   // name of the environnement ('production' enable cache in express application)
   env: 'development',
@@ -31,6 +30,10 @@ export default {
   // port used to open the http server, in production this value is typically 80
   port: 8000,
 
+  rawSocket: {
+    port: 8002,
+  },
+
   // describe the location where the experience takes places, theses values are
   // used by the `placer`, `checkin` and `locator` services.
   // if one of these service is required, this entry shouldn't be removed.
@@ -41,6 +44,7 @@ export default {
       // path to an image to be used in the area representation
       background: null,
     },
+    radius: 1,
     // list of predefined labels
     labels: null,
     // list of predefined coordinates given as an array of `[x:Number, y:Number]`
@@ -56,7 +60,7 @@ export default {
   scoreRecordDirectory: path.join(cwd, 'logs', 'score'),
 
   // socket.io configuration
-  socketIO: {
+  websockets: {
     url: '',
     transports: ['websocket'],
     // @note: EngineIO defaults
