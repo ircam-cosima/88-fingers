@@ -94,6 +94,8 @@ class PlayerView extends soundworks.View {
 
     if (/#/.test(label))
       note.addAccidental(0, new Vex.Flow.Accidental('#'))
+    else if (/b/.test(label))
+      note.addAccidental(0, new Vex.Flow.Accidental('b'))    
 
     Vex.Flow.Formatter.FormatAndDraw(ctx, stave, [note]);
 

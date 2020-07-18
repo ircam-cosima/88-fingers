@@ -24,18 +24,18 @@ process.env.NODE_ENV = config.env;
 const firstNoteNumber = 21;
 const numNotes = 88;
 const noteNames = {
-  0: 'c',
-  1: 'c#',
-  2: 'd',
-  3: 'd#',
-  4: 'e',
-  5: 'f',
-  6: 'f#',
-  7: 'g',
-  8: 'g#',
-  9: 'a',
-  10: 'a#',
-  11: 'b'
+  0: 'C',
+  1: 'C#',
+  2: 'D',
+  3: 'Eb',
+  4: 'E',
+  5: 'F',
+  6: 'F#',
+  7: 'G',
+  8: 'G#',
+  9: 'A',
+  10: 'Bb',
+  11: 'B'
 };
 
 function getOctava(midiNote) {
