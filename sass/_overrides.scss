@@ -1,16 +1,21 @@
 // '#0099FF', 'red', 'orange'
 #keyboard {
-  #keyboard-nav {
-    background-color: #242424;
-  }
-
   #keyboard-container {
     position: relative;
     overflow: hidden;
   }
 
+  #keyboard-nav {
+    position: absolute;
+    top: 0;
+    height: 40px;
+    width: 100%;
+    background-color: #242424;
+  }
+
   #keyboard-layer {
-    position: relative;
+    position: absolute;
+    top: 40px;
     left: 0;
   }
 
@@ -23,14 +28,16 @@
   }
 
   #cursor {
-    $cursorColor: orange;
+    $cursorColor: #777;
 
-    height: 100%;
     position: absolute;
+    top: 3px;
+    height: 34px;
     background-color: $cursorColor;
     border-radius: 3px;
 
-    &::before, &::after {
+    &::before,
+    &::after {
       display: block;
       position: absolute;
       height: 70%;
@@ -68,8 +75,8 @@
       border-right: 1px solid black;
       border-bottom: 1px solid black;
       background-color: black;
-      border-bottom-left-radius: 2px;
-      border-bottom-right-radius: 2px;
+      border-bottom-left-radius: 6px;
+      border-bottom-right-radius: 6px;
     }
 
     &.selected {
@@ -80,12 +87,25 @@
       background-color: grey;
     }
   }
+
+  .key-label {
+    position: absolute;
+    bottom: 5px;
+    width: 100%;
+    color: #000;
+    text-align: center;
+    font-size: 1.5em;
+    font-weight: bold;
+  }
 }
 
 #experience {
-  -webkit-user-select: none;  /* Chrome all / Safari all */
-  -moz-user-select: none;     /* Firefox all */
-  -ms-user-select: none;      /* IE 10+ */
+  -webkit-user-select: none;
+  /* Chrome all / Safari all */
+  -moz-user-select: none;
+  /* Firefox all */
+  -ms-user-select: none;
+  /* IE 10+ */
   user-select: none;
 
   .background {
@@ -122,16 +142,22 @@
     width: 100px;
     opacity: 0.9;
 
-    .forte, .piano {
-      font-family:  Times;
+    .forte,
+    .piano {
+      font-family: Times;
       font-style: italic;
       width: 100%;
       text-align: center;
       position: absolute;
     }
 
-    .forte { top: 20px; }
-    .piano { bottom: 20px; }
+    .forte {
+      top: 20px;
+    }
+
+    .piano {
+      bottom: 20px;
+    }
 
     svg {
       width: 50%;
@@ -147,13 +173,9 @@
     }
   }
 
-  .wait #note, .wait #intensity {
+  .wait #note,
+  .wait #intensity {
     opacity: 0.4;
   }
 
 }
-
-
-
-
-

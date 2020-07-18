@@ -15,25 +15,26 @@ const keyboardDef = {
   11: { type: 'w', position: 18 },
 };
 
+const whiteKeyHeight = 12; // in units
+const whiteKeyWidth = 3; // in units
+const blackKeyHeight = 2 * whiteKeyHeight / 3; // in units
+const blackKeyWidth = 2 * whiteKeyWidth / 3; // in units
+const preferedUnit = 16;
+
 // @note : changing `width`(s) here can break position definitions
 const keyDefinitions = {
-  'w': { height: 12, width: 3, zIndex: 0 },
-  'b': { height: 8, width: 2, zIndex: 1 },
+  'w': { height: whiteKeyHeight, width: whiteKeyWidth, zIndex: 0 },
+  'b': { height: blackKeyHeight, width: blackKeyWidth, zIndex: 1 },
 };
 
-const unit = 10; // nbr of pixels for 1 unit
 const octavaWidth = 21;
 const defaultTemplate = `
   <div id="instruction-container" class="flex-middle">
     <p><%= instructions %></p>
   </div>
-  <div id="keyboard-nav">
-    <div id="cursor"></div>
-  </div>
   <div id="keyboard-container">
-    <div id="keyboard-layer">
-
-    </div>
+    <div id="keyboard-nav"><div id="cursor"></div></div>
+    <div id="keyboard-layer"></div>
   </div>
   <div id="messages">
     <div id="confirm-container" class="flex-middle">
@@ -50,8 +51,8 @@ const defaultTemplate = `
 `;
 
 const defaultModel = {
-  instructions: `Select your key`,
-  send: `Send`,
+  instructions: `Claim your key`,
+  send: `Select`,
   reject: `Sorry, no key is available`,
   showBtn: false,
   rejected: false,
@@ -61,25 +62,27 @@ class KeyboardView extends SegmentedView {
   constructor(template = defaultTemplate, model = defaultModel, event, options) {
     super(template, model, event, { id: 'keyboard' });
 
-    this.$elementInfosMap = new Map();
-    this.$keys = [];
-    this.hasSelection = false;
-    this.$selectedKey = null;
-
     this.ratios = {
-      '#instruction-container': 0.3,
-      '#keyboard-nav': 0.07,
-      '#keyboard-container': 0.43,
+      '#instruction-container': 0.2,
+      '#keyboard-container': 0.6,
       '#confirm-container': 0.2,
     };
 
+    this.$elementInfosMap = new Map();
+    this.$selectedKey = null;
+    this.hasSelection = false;
+
+    this._keys = [];
+    this._coordinates = null;
+    this._unit = preferedUnit;
+
+    this._viewportWidth = null;
     this._touchId = null;
     this._cursorX = 0;
     this._startX = 0;
     this._diffX = 0;
     this._startKeyboardX = 0;
-
-    this._isDisplayed = false;
+    this._keyboardX = 0;
 
     this._onCursorTouchStart = this._onCursorTouchStart.bind(this);
     this._onCursorTouchMove = this._onCursorTouchMove.bind(this);
@@ -91,7 +94,7 @@ class KeyboardView extends SegmentedView {
   }
 
   updateDisabledPositions(indexes) {
-    if (indexes.length === this.$keys.length) {
+    if (indexes.length === this._keys.length) {
       this.model.rejected = true;
     } else {
       // if previously rejected, reset everything
@@ -108,7 +111,7 @@ class KeyboardView extends SegmentedView {
 
     this.render('#messages');
 
-    this.$keys.forEach(($key, index) => {
+    this._keys.forEach(($key, index) => {
       const isDisabled = (indexes.indexOf(index) !== -1);
 
       if (isDisabled) {
@@ -144,8 +147,114 @@ class KeyboardView extends SegmentedView {
   setArea(area) {}
 
   displayPositions(capacity, labels = null, coordinates = null, maxClientsPerPosition = 1) {
+    let octavaCount = 0;
+
+    this._coordinates = coordinates;
+    this._keys = [];
+    this.$keyboardLayer.innerHTML = "";
+
+    for (let i = 0; i < coordinates.length; i++) {
+      const note = coordinates[i];
+      const normNote = note % 12;
+      const type = keyboardDef[normNote].type;
+
+      if (normNote === 0)
+        octavaCount += 1;
+
+      const $key = document.createElement('div');
+      $key.classList.add('key', type);
+
+      if (normNote === 0) {
+        const $label = document.createElement('div');
+
+        $label.classList.add('key-label');
+        $label.innerHTML = `C${octavaCount}`;
+
+        $key.appendChild($label);
+      }
+
+      this.$keyboardLayer.appendChild($key);
+      this._keys.push($key);
+
+      this.$elementInfosMap.set($key, {
+        index: i,
+        label: labels[i],
+        coordinates: note,
+      });
+    }
+
+    this.installEvents({
+      'touchend .key': this._onSelectionChange
+    });
+
+    this._updateKeyboardSize();
+  }
+
+  onResize(viewportWidth, viewportHeight, orientation) {
+    super.onResize(viewportWidth, viewportHeight, orientation);
+
+    if (viewportWidth !== this._viewportWidth) {
+      const needsInitialPosition = (this._viewportWidth === null);
+      this._viewportWidth = viewportWidth;
+
+      this._updateKeyboardSize();
+      this._updateSize();
+
+      if (needsInitialPosition)
+        this._onCursorTouchStart(null, Math.random());
+    }
+  }
+
+  reject(disabledPositions) {
+    this.updateDisabledPositions(disabledPositions);
+  }
+
+  setSelectCallack(callback) {
+    this._onSelect = callback;
+  }
+
+  _updateSize() {
+    const viewportWidth = this._viewportWidth;
+    const navRect = this.$keyboardNav.getBoundingClientRect();
+    const navWidth = navRect.width;
+    const navHeight = navRect.height;
+    const keyboardHeight = this.$keyboardContainer.getBoundingClientRect().height;
+    const maxHeight = keyboardHeight - navHeight;
+    let maxWidth = navWidth * 8;
+    let unit = preferedUnit;
+
+    this._screenToKeyboardRatio = viewportWidth / this.keyboardWidth;
+    this._cursorWidth = viewportWidth * this._screenToKeyboardRatio;
+
+    this.$cursor.style.width = `${this._cursorWidth}px`;
+    this.$cursor.style.left = `${this._normCursorX * viewportWidth}px`;
+
+    let keyWidth = whiteKeyWidth * unit;
+
+    if (keyWidth > maxWidth)
+      unit = keyWidth / whiteKeyWidth;
+
+    let keyHeight = whiteKeyHeight * unit;
+
+    if (keyHeight > maxHeight)
+      unit = maxHeight / whiteKeyHeight;
+
+    this._unit = unit;
+
+    const margin = (maxHeight - keyHeight) / 2;
+    this.$keyboardNav.style.top = `${margin}px`;;
+    this.$keyboardLayer.style.top = `${margin + navHeight}px`;
+
+    if (this._normCursorX)
+      this._moveCursor(this._normCursorX * this._viewportWidth);
+  }
+
+  _updateKeyboardSize() {
+    const coordinates = this._coordinates;
+    const unit = this._unit;
     let offset = 0;
     let octavaCount = 0;
+
     this.keyboardWidth = 0;
 
     for (let i = 0; i < coordinates.length; i++) {
@@ -167,9 +276,7 @@ class KeyboardView extends SegmentedView {
       const width = keyWidth * unit;
       const height = keyHeight * unit;
 
-
-      const $key = document.createElement('div');
-      $key.classList.add('key', type);
+      const $key = this._keys[i];
 
       $key.style.left = `${x}px`;
       $key.style.top = `0px`;
@@ -177,88 +284,27 @@ class KeyboardView extends SegmentedView {
       $key.style.height = `${height}px`;
       $key.style.zIndex = zIndex;
 
-      this.$keyboardLayer.appendChild($key);
-
-      this.$elementInfosMap.set($key, {
-        index: i,
-        label: labels[i],
-        coordinates: note,
-      });
-
-      this.$keys.push($key);
-
       // define keyboard size in pixel
       if (type === 'w')
         this.keyboardWidth += width;
     }
-
-    this.installEvents({
-      'touchend .key': this._onSelectionChange
-    });
-  }
-
-  onResize(viewportWidth, viewportHeight, orientation) {
-    super.onResize(viewportWidth, viewportHeight, orientation);
-
-    this._updateCursorSize();
-
-    if (!this._isDisplayed) {
-      this._onCursorTouchStart(null, Math.random());
-      this._isDisplayed = true;
-    }
-  }
-
-  reject(disabledPositions) {
-    this.updateDisabledPositions(disabledPositions);
-  }
-
-  setSelectCallack(callback) {
-    this._onSelect = callback;
-  }
-
-  _updateCursorSize() {
-    const screenWidth = this.viewportWidth;
-    const height = this.$keyboardNav.getBoundingClientRect().height;
-
-    this._screenToKeyboardRatio = screenWidth / this.keyboardWidth;
-    this._cursorWidth = screenWidth * this._screenToKeyboardRatio;
-
-    this.$cursor.style.width = `${this._cursorWidth}px`;
-    this.$cursor.style.height = `${height}px`;
-    this.$cursor.style.left = `${this._normCursorX * screenWidth}px`;
-
-    if (this._normCursorX) {
-      const viewportWidth = this.viewportWidth;
-      // update cursor
-      let cursorX = (viewportWidth * this._normCursorX);
-      cursorX = Math.max(cursorX, 0);
-      cursorX = Math.min(cursorX, viewportWidth - this._cursorWidth);
-
-      if (cursorX !== this._cursorX) {
-        let keyboardX = -1 * cursorX / this._screenToKeyboardRatio;
-
-        this.$cursor.style.left = `${cursorX}px`;
-        this.$keyboardLayer.style.left = `${keyboardX}px`;
-
-        this._cursorX = cursorX;
-        this._normCursorX = cursorX / viewportWidth;
-      }
-    }
   }
 
   _moveCursor(cursorX) {
-    const viewportWidth = this.viewportWidth;
+    const viewportWidth = this._viewportWidth;
 
     cursorX = Math.max(cursorX, 0);
     cursorX = Math.min(cursorX, viewportWidth - this._cursorWidth);
 
-    const keyboardX = -1 * cursorX / this._screenToKeyboardRatio;
-    this.$cursor.style.left = `${cursorX}px`;
-    this.$keyboardLayer.style.left = `${keyboardX}px`;
+    if (cursorX !== this._cursorX) {
+      const keyboardX = -1 * cursorX / this._screenToKeyboardRatio;
+      this.$cursor.style.left = `${cursorX}px`;
+      this.$keyboardLayer.style.left = `${keyboardX}px`;
 
-    this._keyboardX = keyboardX;
-    this._cursorX = cursorX;
-    this._normCursorX = cursorX / viewportWidth;
+      this._keyboardX = keyboardX;
+      this._cursorX = cursorX;
+      this._normCursorX = cursorX / viewportWidth;
+    }
   }
 
   _moveKeyboard(keyboardX) {
@@ -270,7 +316,7 @@ class KeyboardView extends SegmentedView {
     if (this._touchId === null) {
       this._touchId = id;
 
-      const x = this.viewportWidth * normX;
+      const x = this._viewportWidth * normX;
       // if touch is outside cursor, jump to position else do nothing
       if (x < this._cursorX || x > (this._cursorX + this._cursorWidth))
         this._onCursorTouchMove(id, normX, normY);
@@ -279,8 +325,8 @@ class KeyboardView extends SegmentedView {
 
   _onCursorTouchMove(id, normX, normY, touch, touchEvent) {
     if (this._touchId === id) {
-      const halfCursor = this._cursorWidth / 2;
-      this._moveCursor(this.viewportWidth * normX - halfCursor);
+      const cursorX = this._viewportWidth * normX - this._cursorWidth / 2;
+      this._moveCursor(cursorX);
     }
   }
 
@@ -300,7 +346,7 @@ class KeyboardView extends SegmentedView {
 
   _onKeyboardTouchMove(id, x, y, touch, touchEvent) {
     if (this._touchId === id) {
-      const viewportWidth = this.viewportWidth;
+      const viewportWidth = this._viewportWidth;
       const diffX = x - this._startX;
 
       this._moveKeyboard(this._startKeyboardX + diffX);
