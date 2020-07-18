@@ -2,7 +2,7 @@ import * as soundworks from 'soundworks/client';
 import PlacerView from './PlacerView';
 import userTiming from './user-timing';
 import DeferService from '../shared/DeferService';
-//import Vex from 'vexflow';
+import Vex from 'vexflow';
 
 const audioContext = soundworks.audioContext;
 const client = soundworks.client;

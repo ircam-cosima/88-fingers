@@ -14,16 +14,16 @@
     "postinstall": "npm run bundle"
   },
   "dependencies": {
-    "babel-runtime": "^6.9.2",
+    "@babel/runtime": "^7.10.5",
     "d3": "^4.3.0"
   },
   "devDependencies": {
-    "babel-core": "^6.14.0",
-    "babel-plugin-transform-es2015-modules-commonjs": "^6.14.0",
-    "babel-plugin-transform-runtime": "^6.12.0",
-    "babel-preset-latest": "^6.14.0",
+    "@babel/core": "^7.10.5",
+    "@babel/plugin-transform-modules-commonjs": "^7.10.4",
+    "@babel/plugin-transform-runtime": "^7.10.5",
+    "@babel/preset-env": "^7.10.4",
     "benchmark": "^1.0.0",
-    "browserify": "^13.0.0",
+    "browserify": "^16.5.0",
     "colors": "^1.1.2",
     "connect": "^3.3.5",
     "fs-extra": "^0.26.5",

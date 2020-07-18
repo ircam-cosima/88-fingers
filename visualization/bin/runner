@@ -1,188 +1,399 @@
 #!/usr/bin/env node
-var fse = require('fs-extra');
-var watch = require('watch');
-var path = require('path');
-var pkg = require('../package.json');
-var util = require('util');
+const pkg = require('../package.json');
+const fileStore = require('./fileStore');
+const fs = require('fs');
+const fse = require('fs-extra');
+const log = require('./log');
+const path = require('path');
+const server = require('./server');
+const styles = require('./styles');
+const transpiler = require('./transpiler');
+const watch = require('watch');
+const { escapeRegExp, isJS, isServerFile, isClientFile, isSharedFile } = require('./utils');
 
-var javascripts = require('./javascripts');
-var server = require('./server');
-var cwd = process.cwd();
+const cwd = process.cwd();
 
-'use strict';
+/* --------------------------------------------------------------------------
+ * Configuration
+ * -------------------------------------------------------------------------- */
 
-/**
- * Options for babel transpiling.
- */
-var babelrc = fse.readFileSync(path.join(cwd, '.babelrc'));
-var babelOptions = JSON.parse(babelrc.toString());
+// --------------------------------------------------------------------------
+// Tools configuration
+// --------------------------------------------------------------------------
 
-/**
- * Options for watch.
- */
-var watchOptions = {
+const babelOptions = JSON.parse(fs.readFileSync(path.join(cwd, '.babelrc')));
+
+const watchOptions = {
   ignoreDotFiles: true,
   ignoreUnreadableDir: true,
   ignoreNotPermitted: true,
-  interval: 2000, // watch internally use `fs.watchFile`
+  interval: 1,
 };
 
-/**
- * Options for browserify.
- */
-var browserifyOptions = {
+const browserifyOptions = {
   debug: true,
   fullPaths: false,
-  standalone: pkg.standalone,
+};
+
+const sassOptions = {
+  outputStyle: 'compressed',
+  sourceMap: true,
+  sourceMapEmbed: true,
+};
+
+// --------------------------------------------------------------------------
+// Paths
+// --------------------------------------------------------------------------
+
+// JS Stuff
+const srcDirectory = path.join(cwd, 'src');
+const srcRegExp = new RegExp('^' + escapeRegExp(srcDirectory));
+
+const distDirectory = path.join(cwd, 'dist');
+const distRegExp = new RegExp('^' + escapeRegExp(distDirectory));
+
+const escapedClientsMatchStr = '^' + escapeRegExp(distDirectory + path.sep + 'client' + path.sep) + '([a-zA-Z\-_]+)' + escapeRegExp(path.sep + 'index.js');
+const clientsMatch = new RegExp(escapedClientsMatchStr);
+
+const escapedClientsSearchStr = '^' + escapeRegExp(distDirectory + path.sep + 'client' + path.sep) + '([a-zA-Z\-_]+)' + escapeRegExp(path.sep) + '.*';
+const clientsSearch = new RegExp(escapedClientsSearchStr);
+
+const clientPublicDirectory = path.join(cwd, 'public', 'js');
+const serverIndex = path.join(distDirectory, 'server', 'index.js');
+
+const additionnalClientDirectories = [
+  path.join(cwd, 'node_modules', 'soundworks', 'client'),
+];
+
+const additionnalServerDirectories = [
+  path.join(cwd, 'node_modules', 'soundworks', 'server'),
+];
+
+// CSS Stuff
+const sassSrcDirectory = path.join(cwd, 'sass');
+const cssPublicDirectory = path.join(cwd, 'public', 'css');
+
+// HTML Stuff
+const htmlTemplatesDirectory = path.join(cwd, 'html');
+
+/* --------------------------------------------------------------------------
+ * Reusable logic
+ * -------------------------------------------------------------------------- */
+
+/**
+ * Transpile a single file, if the given file is not a js file (extention != .js)
+ * the file is simply copied to the dist folder.
+ * @param File file - file to transpile in the `src` folder
+ */
+const transpileFile = file => {
+  return fileStore.get(file.abs.replace(srcRegExp, distDirectory))
+    .then(dist => {
+      const startTime = new Date().getTime();
+
+      if (!isJS(file)) {
+        return new Promise((resolve, reject) => {
+          fse.copy(file.abs, dist.abs, err => {
+            if (err)
+              return reject(log.copyFileError(file, err));
+
+            const dt = new Date().getTime() - startTime;
+            return resolve(log.copyFileSuccess(file, dist, dt));
+          });
+        });
+      } else {
+        return transpiler.transpile(file, dist, babelOptions)
+          .then(([file, dist]) => {
+            const dt = new Date().getTime() - startTime;
+            return log.transpileSuccess(file, dist, dt);
+          })
+          .catch(err => log.transpileError(file, err));
+      }
+    });
 };
 
 /**
- * Watched directories
+ * Bundle a single file
+ * @param File file - client entry point in the `dist` folder (transpiled version)
  */
-var srcDirectory = path.join(cwd, 'src');
-var distDirectory = path.join(cwd, 'dist');
+const bundleClient = file => {
+  const clientName = file.abs.match(clientsMatch)[1];
+  const bundleTarget = path.join(clientPublicDirectory, `${clientName}.js`);
 
-var bundlePath = path.join(cwd, 'bundle.js');
+  return fileStore.get(bundleTarget)
+    .then(dist => {
+      const startTime = new Date().getTime();
+
+      return transpiler.bundle(file, dist, browserifyOptions)
+        .then(([file, dist]) => {
+          const dt = new Date().getTime() - startTime;
+          return log.bundleSuccess(file, dist, dt);
+        })
+        .catch(err => log.bundleError(file, err));
+    });
+};
+
+const bundleClients = () => {
+  return fileStore.getAll(distDirectory)
+    .then(files => files.filter(file => file.abs.match(clientsMatch)))
+    .then(indexes => Promise.all(indexes.map(bundleClient)));
+};
 
 /**
- * Define which file should be ignored by every command.
+ * minify a given bundle file
  */
-var allowedExtentions = /\.ejs$|\.scss$|\.js$/;
-var excludeFiles = /^\./; // exclude hidden files
+const minifyClient = file => {
+  const minifyTarget = file.abs.replace(/\.js$/, '.min.js');
+
+  return fileStore.get(minifyTarget)
+    .then(dist => {
+      const startTime = new Date().getTime();
+
+      return transpiler.minify(file, dist)
+        .then(([file, dist]) => {
+          const dt = new Date().getTime() - startTime;
+          return log.minifySuccess(file, dist, dt);
+        })
+        .catch(err => log.minifyError(file, err));
+    });
+};
 
 /**
- * Test the given filename, to ensure it can be processed by any command / tranpsiler
- * @param {String} filename - The filename to be checked.
- * @param {Boolean} [ensureFile=true] - If set to false, don't test if the file exists.
+ * process all sass files
  */
-function isAllowed(filename, ensureFile) {
-  ensureFile = ensureFile === undefined ? true : ensureFile;
+const processSass = () => {
+  return fileStore.getAll(sassSrcDirectory)
+    .then(sources => {
+      const pairs = sources
+        .filter(src => !/^_/.test(path.basename(src.abs)))
+        .map(src => {
+          const basename = path.basename(src.abs, '.scss');
+          const cssFilename = path.join(cssPublicDirectory, basename + '.css');
 
-  var basename = path.basename(filename);
-  var isFile = true;
+          return Promise.all([src, fileStore.get(cssFilename)])
+        });
 
-  if (ensureFile) {
-    try {
-      isFile = fse.lstatSync(filename).isFile() && !fse.lstatSync(filename).isSymbolicLink();
-    } catch(e) {
-      console.log(e.message);
-      isFile = false;
-    }
+      return Promise.all(pairs)
+        .then(pairs => {
+          const promises = pairs.map(([src, dist]) => {
+            const startTime = new Date().getTime();
+
+            return styles.process(src, dist, sassOptions)
+              .then(([src, dist]) => {
+                const dt = new Date().getTime() - startTime;
+                return log.sassSuccess(src, dist, dt);
+              })
+              .catch(err => log.sassError(src, err));
+          });
+
+          return Promise.all(promises);
+        })
+        .catch(err => {});
+    });
+};
+
+const restartServer = () => {
+  return fileStore.get(serverIndex)
+    .then(serverFile => {
+      return server.stop()
+        .then(() => log.serverStop())
+        .then(() => server.start(serverFile))
+        .then(() => log.serverStart())
+        .catch(err => log.serverError());
+    })
+    .catch(err => log.serverError());
+};
+
+const deleteEntry = file => {
+  return fileStore
+    .delete(file)
+    .then(log.deleteFileSuccess)
+    .catch(err => log.deleteFileError(file, err));
+};
+
+// -------------------------------------------------------------
+// Watch functions
+// -------------------------------------------------------------
+
+function watchJsSources() {
+  const deleteFile = (filename, stats) => {
+    const distFilename = filename.replace(srcRegExp, distDirectory);
+
+    fileStore.get(distFilename).then(deleteEntry);
+  };
+
+  const processFile = (filename, stats) => {
+    fileStore.get(filename)
+      .then(transpileFile)
+      .then(([src, dist]) => {
+        if (isSharedFile(src)) {
+          if (isClientFile(src))
+            return bundleClients();
+          else if (isServerFile(src))
+            return restartServer();
+          else
+            return bundleClients().then(restartServer);
+        } else if (isClientFile(src)) {
+          const matches = dist.abs.match(clientsSearch);
+
+          if (matches === null) // is directory (probably...)
+            return Promise.resolve();
+
+          const clientName = matches[1];
+          const index = path.join(distDirectory, 'client', clientName, 'index.js');
+
+          return fse.pathExists(index)
+            .then(exists => {
+              if (exists)
+                return fileStore.get(index).then(bundleClient);
+              else
+                return Promise.resolve();
+            });
+        } else if (isServerFile(src)) {
+          return restartServer();
+        }
+      })
+      .catch(err => {});
   }
 
-  var hasAllowedExt = allowedExtentions.test(basename);
-  var notExcludeFile = !excludeFiles.test(basename);
-
-  return isFile && hasAllowedExt && notExcludeFile;
+  // watch file system
+  watch.createMonitor(srcDirectory, Object.assign({}, watchOptions), monitor => {
+    monitor.on('created', processFile);
+    monitor.on('changed', processFile);
+    monitor.on('removed', deleteFile);
+  });
 }
 
-/**
- * Returns a list of the file in a given folder recursively.
- */
-function _getFileList(folder, callback) {
-  var files = [];
+function watchAdditionnalSources() {
+  additionnalClientDirectories.forEach(dir => {
+    watch.createMonitor(dir, Object.assign({}, watchOptions), monitor => {
+      monitor.on('created', bundleClients);
+      monitor.on('changed', bundleClients);
+      monitor.on('removed', bundleClients);
+    });
+  });
 
-  fse.walk(folder)
-    .on('data', function(item) {
-      if (item.stats.isFile() && isAllowed(item.path))
-        files.push(item.path);
+  additionnalServerDirectories.forEach(dir => {
+    watch.createMonitor(dir, Object.assign({}, watchOptions), monitor => {
+      monitor.on('created', restartServer);
+      monitor.on('changed', restartServer);
+      monitor.on('removed', restartServer);
+    });
+  });
+}
+
+function watchCssSources() {
+  watch.createMonitor(sassSrcDirectory, Object.assign({}, watchOptions), monitor => {
+    monitor.on('created', processSass);
+    monitor.on('changed', processSass);
+    monitor.on('removed', processSass);
+  });
+}
+
+function watchHtmlSources(serverFile) {
+  watch.createMonitor(htmlTemplatesDirectory, Object.assign({}, watchOptions), monitor => {
+    monitor.on('created', restartServer);
+    monitor.on('changed', restartServer);
+    monitor.on('removed', restartServer);
+  });
+}
+
+// -------------------------------------------------------------
+// Commands
+// -------------------------------------------------------------
+
+function __watch() {
+  watchHtmlSources();
+  watchCssSources();
+  watchJsSources();
+  watchAdditionnalSources();
+
+  return fileStore.get(serverIndex).then(server.start);
+}
+
+function __transpile() {
+  const transpileSass = processSass();
+
+  const transpileJS = fileStore.getAll(srcDirectory)
+    .then(sources => { // 1. transpile all js files (if json, just copy)
+      return sources.reduce((promise, src) => {
+        return promise.then(all => {
+          return transpileFile(src).then(pair => {
+            all.push(pair);
+            return all;
+          });
+        }).catch(err => {});
+      }, Promise.resolve([]));
     })
-    .on('end', function() {
-      callback(files);
+    .then(pairs => { // 2. bundle clients
+      const clients = pairs.filter(([src, dist]) => dist.abs.match(clientsMatch));
+      return Promise.all(clients.map(([src, dist]) => bundleClient(dist)));
+    })
+    .catch(err => {});
+
+  return Promise
+    .all([transpileSass, transpileJS])
+    .catch(err => {});
+}
+
+function __start() {
+  return fileStore
+    .get(serverIndex)
+    .then(server.start)
+    .catch(err => {});
+}
+
+function __minify() {
+  return fileStore.getAll(clientPublicDirectory)
+    .then(files => {
+      const minFiles = files.filter(file => /\.min\.js$/.test(file.abs));
+      deletePromises = minFiles.map(fileStore.delete)
+
+      return Promise
+        .all(deletePromises)
+        .then(() => fileStore.getAll(clientPublicDirectory))
+        .then(files => Promise.all(files.map(minifyClient)))
+        .catch(err => {});
     });
 }
 
-/**
- * Watch javascript source files.
- */
-function watchFiles(srcDirectory, distDirectory) {
-  var transpiler = javascripts.getTranspiler(srcDirectory, distDirectory, isAllowed, babelOptions, browserifyOptions);
+function __clear() {
+  const directories = [
+    fileStore.get(distDirectory),
+    fileStore.get(clientPublicDirectory),
+    fileStore.get(cssPublicDirectory),
+  ];
 
-  watch.createMonitor(srcDirectory, watchOptions, function(monitor) {
-    monitor.on('created', function(filename, stats) {
-      if (isAllowed(filename))
-        transpiler.transpile(filename, []);
-    });
-
-    monitor.on('changed', function(filename, stats) {
-      if (isAllowed(filename))
-        transpiler.transpile(filename, []);
-    });
-
-    monitor.on('removed', function(filename, stats) {
-      if (isAllowed(filename, false))
-        transpiler.delete(filename);
-    });
-  });
-
-  // start a server which bundles sources on `bundle.js` request
-  var entryPoint = path.join(distDirectory, 'index.js');
-  var middleware = server.bundleMiddleware(transpiler, entryPoint, bundlePath);
-  server.start(middleware);
-}
-
-
-function transpileFiles(srcDirectory, distDirectory, callback) {
-  _getFileList(srcDirectory, function(files) {
-    var transpiler = javascripts.getTranspiler(srcDirectory, distDirectory, isAllowed, babelOptions);
-    transpiler.transpile(undefined, files, callback);
-  });
-}
-
-function bundle(distDirectory) {
-  var entryPoint = path.join(distDirectory, 'index.js');
-  var transpiler = javascripts.getTranspiler(srcDirectory, distDirectory, isAllowed, babelOptions, browserifyOptions);
-
-  transpileFiles(srcDirectory, distDirectory, function() {
-    transpiler.bundle(entryPoint, bundlePath);
-  });
-}
-
-function serve() {
-  server.start();
+  return Promise
+    .all(directories)
+    .then(handles => Promise.all(handles.map(deleteEntry)))
+    .catch(err => {});
 }
 
 /* --------------------------------------------------------------------------
- * Process and execute the given command.
+ * Parse commands
  * -------------------------------------------------------------------------- */
 
-var command = process.argv[2];
-var args = process.argv.slice(3);
-var argv = {};
-for (var i = 0; i < args.length; i += 2) {
-  argv[args[i]] = args[i + 1];
-}
+const cmd = process.argv[2];
 
-switch (command) {
-  /**
-   * Watch the file system and transpile from es6 to es5.
-   */
+switch (cmd) {
   case '--watch':
-    watchFiles(srcDirectory, distDirectory);
+    __transpile().then(__watch).catch(err => console.error('Unhandled Error', err));
     break;
-
-  /**
-   * Transpile all files in `src` from es6 to es5.
-   */
   case '--transpile':
-    transpileFiles(srcDirectory, distDirectory);
+    __transpile().catch(err => console.error('Unhandled Error', err));
     break;
-
-  /**
-   * Transpile all files in `src` from es6 to es5 and browserify all the things.
-   */
-  case '--bundle':
-    bundle(distDirectory);
+  case '--start':
+    __start().catch(err => console.error('Unhandled Error', err));
     break;
-
-  /**
-   * Run a static server.
-   */
-  case '--serve':
-    serve();
+  case '--minify':
+    __minify().catch(err => console.error('Unhandled Error', err));;
+    break;
+  case '--clear':
+    __clear().catch(err => console.error('Unhandled Error', err));;
     break;
 }
 
-/* --------------------------------------------------------------------------
- * -------------------------------------------------------------------------- */
+process.on('SIGINT', () => process.exit());
+
+/* -------------------------------------------------------------------------- */
 

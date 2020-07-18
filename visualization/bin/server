@@ -1,42 +1,45 @@
 #!/usr/bin/env node
-var connect = require('connect');
-var log = require('./log');
-var path = require('path');
-var portfinder = require('portfinder');
-var serveStatic = require('serve-static');
-var serveFavicon = require('serve-favicon');
+const fse = require('fs-extra');
+const childProcess = require('child_process');
 
-'use strict';
+// Process hosting the server
+let server = null;
 
-portfinder.basePort = 3000;
-
-
-const server = {
-  start: function(middleware) {
-    var app = connect();
-
-    if (middleware)
-      app.use(middleware);
-
-    app.use(serveFavicon('./assets/favicon.ico'));
-    app.use(serveStatic('.', { index: ['index.html'] }));
-
-    portfinder.getPort(function(err, port) {
+// run the `serverIndex` in a forked process
+const start = module.exports.start = function(src) {
+  return new Promise((resolve, reject) => {
+    fse.stat(src.abs, (err, stats) => {
       if (err)
-        console.log(err.message);
+        reject();
 
-      app.listen(port, function() { log.serverStart(port); });
+      if (server) {
+        stop().then(() => {
+          server = childProcess.fork(src.abs);
+          resolve();
+        });
+      } else {
+        server = childProcess.fork(src.abs);
+        resolve();
+      }
     });
-  },
-
-  bundleMiddleware: function(transpiler, entryPoint, outFilename) {
-    return function(req, res, next) {
-      if (req.url === '/' + path.basename(outFilename))
-        transpiler.bundle(entryPoint, outFilename, next); // rebundle
-      else
-        next();
-    }
-  }
+  });
 }
 
-module.exports = server;
+// kill the forked process hosting the server
+const stop = module.exports.stop = function() {
+  return new Promise((resolve, reject) => {
+    if (server)
+      server.kill();
+
+    server = null;
+    resolve();
+  });
+}
+
+// Kill server on uncaughtException
+process.on('uncaughtException', function (err) {
+  console.log('Uncaught Exception: '.red);
+  console.error(err.stack);
+
+  stop().then(() => process.exit());
+});
