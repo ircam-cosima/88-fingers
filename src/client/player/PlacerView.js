@@ -39,7 +39,7 @@ const defaultTemplate = `
   <div id="messages">
     <div id="confirm-container" class="flex-middle">
     <% if (!rejected && showBtn) { %>
-      <button class="btn"><%= send %></button>
+      <button class="btn"><%= select %></button>
     <% } %>
     </div>
     <div id="reject" class="flex-middle<% if (rejected) { %> fit-container<% } %>">
@@ -51,9 +51,9 @@ const defaultTemplate = `
 `;
 
 const defaultModel = {
-  instructions: `Claim your key`,
-  send: `Select`,
-  reject: `Sorry, no key is available`,
+  instructions: 'Claim your key',
+  select: 'Select',
+  reject: 'Sorry, no key available',
   showBtn: false,
   rejected: false,
 };
@@ -394,6 +394,9 @@ class KeyboardView extends SegmentedView {
       $key.classList.add('selected');
       this.$selectedKey = $key;
 
+      const position = this.$elementInfosMap.get(this.$selectedKey);
+      this.model.select = `Select ${position.label.replace("/", "")}`;
+
       if (!this.hasSelection) {
         this.model.showBtn = true;
         this.render('#confirm-container');
@@ -408,6 +411,8 @@ class KeyboardView extends SegmentedView {
         });
 
         this.hasSelection = true;
+      } else {
+        this.render('#messages');
       }
     }
   }
