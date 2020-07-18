@@ -79,10 +79,11 @@ class KeyboardView extends SegmentedView {
     this._viewportWidth = null;
     this._touchId = null;
     this._cursorX = 0;
-    this._startX = 0;
     this._diffX = 0;
     this._startKeyboardX = 0;
     this._keyboardX = 0;
+
+    this._listersRegistered = false;
 
     this._onCursorTouchStart = this._onCursorTouchStart.bind(this);
     this._onCursorTouchMove = this._onCursorTouchMove.bind(this);
@@ -91,6 +92,7 @@ class KeyboardView extends SegmentedView {
     this._onKeyboardTouchMove = this._onKeyboardTouchMove.bind(this);
     this._onKeyboardTouchEnd = this._onKeyboardTouchEnd.bind(this);
     this._onSelectionChange = this._onSelectionChange.bind(this);
+    this._animateKeyboard = this._animateKeyboard.bind(this);
   }
 
   updateDisabledPositions(indexes) {
@@ -128,20 +130,24 @@ class KeyboardView extends SegmentedView {
   onRender() {
     super.onRender();
 
-    this.$keyboardContainer = this.$el.querySelector('#keyboard-container');
-    this.$keyboardLayer = this.$el.querySelector('#keyboard-layer');
-    this.$keyboardNav = this.$el.querySelector('#keyboard-nav');
-    this.$cursor = this.$el.querySelector('#cursor');
+    if (!this._listersRegistered) {
+      this._listersRegistered = true;
 
-    this.navSurface = new TouchSurface(this.$keyboardNav);
-    this.navSurface.addListener('touchstart', this._onCursorTouchStart);
-    this.navSurface.addListener('touchmove', this._onCursorTouchMove);
-    this.navSurface.addListener('touchend', this._onCursorTouchEnd);
+      this.$keyboardContainer = this.$el.querySelector('#keyboard-container');
+      this.$keyboardLayer = this.$el.querySelector('#keyboard-layer');
+      this.$keyboardNav = this.$el.querySelector('#keyboard-nav');
+      this.$cursor = this.$el.querySelector('#cursor');
 
-    this.keySurface = new TouchSurface(this.$keyboardLayer, { normalizeCoordinates: false });
-    this.keySurface.addListener('touchstart', this._onKeyboardTouchStart);
-    this.keySurface.addListener('touchmove', this._onKeyboardTouchMove);
-    this.keySurface.addListener('touchend', this._onKeyboardTouchEnd);
+      this.navSurface = new TouchSurface(this.$keyboardNav);
+      this.navSurface.addListener('touchstart', this._onCursorTouchStart);
+      this.navSurface.addListener('touchmove', this._onCursorTouchMove);
+      this.navSurface.addListener('touchend', this._onCursorTouchEnd);
+
+      this.keySurface = new TouchSurface(this.$keyboardLayer, { normalizeCoordinates: false });
+      this.keySurface.addListener('touchstart', this._onKeyboardTouchStart);
+      this.keySurface.addListener('touchmove', this._onKeyboardTouchMove);
+      this.keySurface.addListener('touchend', this._onKeyboardTouchEnd);
+    }
   }
 
   setArea(area) {}
@@ -338,7 +344,8 @@ class KeyboardView extends SegmentedView {
   _onKeyboardTouchStart(id, x, y, touch, touchEvent) {
     if (this._touchId === null) {
       this._touchId = id;
-      this._startX = x;
+      this._touchX = x;
+      this._touchMove = false;
       this._diffX = 0;
       this._startKeyboardX = this._keyboardX;
     }
@@ -346,24 +353,38 @@ class KeyboardView extends SegmentedView {
 
   _onKeyboardTouchMove(id, x, y, touch, touchEvent) {
     if (this._touchId === id) {
-      const viewportWidth = this._viewportWidth;
-      const diffX = x - this._startX;
-
-      this._moveKeyboard(this._startKeyboardX + diffX);
+      const diffX = x - this._touchX;
+      this._moveKeyboard(this._keyboardX + diffX);
       this._diffX = diffX;
+      this._touchX = x;
+      this._touchMove = true;
     }
   }
 
-  _onKeyboardTouchEnd(id) {
+  _onKeyboardTouchEnd(id, x, y, touch, touchEvent) {
     if (id === this._touchId) {
       this._touchId = null;
+      requestAnimationFrame(this._animateKeyboard);
+    }
+  }
+
+  _animateKeyboard() {
+    if (this._touchId === null) {
+      const diffX = 0.9 * this._diffX;
+
+      if (Math.abs(diffX) >= 1) {
+        this._moveKeyboard(this._keyboardX + diffX);
+        requestAnimationFrame(this._animateKeyboard);
+      }
+
+      this._diffX = diffX;
     }
   }
 
   _onSelectionChange(e) {
     const $key = e.target;
 
-    if (this._diffX === 0) {
+    if (!this._touchMove) {
       if ($key.classList.contains('disabled'))
         return;
 
