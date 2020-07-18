@@ -2,7 +2,7 @@ import * as soundworks from 'soundworks/client';
 import PlacerView from './PlacerView';
 import userTiming from './user-timing';
 import DeferService from '../shared/DeferService';
-import Vex from 'vexflow';
+import Vex from './vexflow-min.js';
 
 const audioContext = soundworks.audioContext;
 const client = soundworks.client;
@@ -80,23 +80,22 @@ class PlayerView extends soundworks.View {
     ctx.canvas.width = w;
     ctx.canvas.height = h;
 
-    // const renderer = new Vex.Flow.Renderer(this.$canvas, Vex.Flow.Renderer.Backends.CANVAS);
-    // const stave = new Vex.Flow.Stave(0, 80, 100, { fill_style: '#000000' });
+    const renderer = new Vex.Flow.Renderer(this.$canvas, Vex.Flow.Renderer.Backends.CANVAS);
+    const stave = new Vex.Flow.Stave(0, 80, 100, { fill_style: '#000000' });
 
-    // stave.addClef(clef);
-    // stave.setContext(ctx).draw();
+    stave.addClef(clef);
+    stave.setContext(ctx).draw();
 
-    // const note = new Vex.Flow.StaveNote({
-    //   keys: [label],
-    //   duration: "1",
-    //   clef: clef,
-    // });
+    const note = new Vex.Flow.StaveNote({
+      keys: [label],
+      duration: "1",
+      clef: clef,
+    });
 
-    // if (/#/.test(label))
-    //   note.addAccidental(0, new Vex.Flow.Accidental('#'))
+    if (/#/.test(label))
+      note.addAccidental(0, new Vex.Flow.Accidental('#'))
 
-    // Vex.Flow.Formatter.FormatAndDraw(ctx, stave, [note]);
-
+    Vex.Flow.Formatter.FormatAndDraw(ctx, stave, [note]);
 
     // invert colors and shift image in y axis
     const imageData = ctx.getImageData(0, 0, 100, 260);
@@ -184,10 +183,13 @@ class PlayerExperience extends soundworks.Experience {
   start() {
     super.start(); // don't forget this
 
-    this.view = new PlayerView(template, { state: 'wait' }, {}, { preservePixelRatio: true });
+    this.view = new PlayerView(template, { state: 'wait' }, {}, { 
+      id: 'player',
+      preservePixelRatio: true,
+    });
+    this.view.setLabel(client.label);
 
     this.show().then(() => {
-      this.view.setLabel(client.label);
       this.surface = new soundworks.TouchSurface(this.view.$el);
       this.sharedParams.addParamListener('state', (state) => this.state = state);
     });
